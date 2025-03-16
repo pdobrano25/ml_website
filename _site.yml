@@ -1,4 +1,3 @@
-output_dir: "docs"
 name: "PDobrano"
 navbar:
   title: "Machine Learning Projects"
@@ -13,6 +12,9 @@ navbar:
           href: mlp_validation.html
     - text: "About"
       href: about.html
+      
+      
+output_dir: "docs"
 
       
 # rmarkdown::render_site() to update site

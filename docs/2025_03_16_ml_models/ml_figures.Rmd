@@ -1,7 +1,5 @@
 ---
 title: "Tabular Machine Learning"
-author: "Peter Dobranowski"
-date: "2025-03-16"
 ---
 ---
 title: "Tabular Machine Learning Algorithms"

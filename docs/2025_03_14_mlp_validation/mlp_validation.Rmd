@@ -1,7 +1,5 @@
 ---
 title: "MLP Validation"
-author: "Peter Dobranowski"
-date: "2025-03-14"
 ---
 
 ```{r setup, include=FALSE}
