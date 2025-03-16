@@ -13,6 +13,6 @@ navbar:
           href: mlp_validation.html
     - text: "About"
       href: about.html
-      
+
       
 # rmarkdown::render_site() to update site
