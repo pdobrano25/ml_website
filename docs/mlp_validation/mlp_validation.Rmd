@@ -5,7 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-setwd("~/Documents/PhD/ml_website/2025_03_14_mlp_validation")
+setwd("~/Documents/PhD/ml_website/mlp_validation")
 library("dplyr")
 ```
 
