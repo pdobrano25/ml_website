@@ -6,6 +6,7 @@ Source code for this website can be found here: https://github.com/pdobrano25/ml
 
 
 **Peter Dobranowski, MSc**
+
 PhD student at the University of Ottawa.
 
 Peter is studying a novel personalized microbiome-modulating therapy for pediatric inflammatory bowel disease. This project involves 1) multi-omic characterization of dietary fiber fermentation by the microbiome, 2) employing machine learning to predict dietary fiber fermentation by the microbiome *ex vivo*, and 3) evaluating the *in vivo* impact of personalized dietary fiber on the microbiome composition and function.

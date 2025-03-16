@@ -1,18 +1,6 @@
 ---
 title: "Tabular Machine Learning"
 ---
----
-title: "Tabular Machine Learning Algorithms"
-Author: Peter Dobranowski
-date: "`r Sys.Date()`"
-
-output: 
-  bookdown::gitbook:
-    split_by: section
-  bookdown::pdf_book:
-    keep_tex: no
-documentclass: book
----
 
 
 ```{r setup, include=FALSE} 
