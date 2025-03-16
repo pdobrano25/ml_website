@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Models"
-output: html_document
+output: rmarkdown::html_document
 site: "PDobrano"
 
 ---

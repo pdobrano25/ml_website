@@ -1,23 +1,14 @@
 name: "PDobrano"
 navbar:
   title: "PDobrano"
-  left:
-    - text: "Home"
-      href: index.html
-    - text: "Projects"
-      menu:
-        - text: "Microbial Load Predictor"
-          href: mlp_validation/mlp_validation.html
-    - text: "Models"
-      href: ml_models/ml_figures.html            
-    - text: "About"
-      href: about.html
+
       
 output:
   html_document:
     theme: cosmo
     toc: true      
-      
+    in_header: navbar.html
+    
 output_dir: "docs"
 
       
