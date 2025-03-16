@@ -1,7 +1,7 @@
 ---
 title: "Machine Learning Models"
 output: html_document
-site: "ml_website"
+site: "PDobrano"
 
 ---
 
@@ -23,7 +23,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE)
 knitr::include_graphics("./ml_figures/Decision_tree.png")
 ```
 
-**Decision Tree**
+## **Decision Tree**
 
 Recursively splits observations (classes or values) based on binary *rules*. The best rule (split) based on a splitting criterion is placed at the root of the tree, followed by recursive rules down the branches. The tree stops being built based on a stopping criteria, such as the number of observations in a terminal (leaf) node. Predictions are made by applying the ruleset and applying majority vote (classification) or averaging values (regression).
 
@@ -39,7 +39,7 @@ Limitations: Predictions are made *step-wise*, so continuous variables cannot be
 knitr::include_graphics("./ml_figures/Random_forest.png")
 ```
 
-**Random Forest**
+## **Random Forest**
 
 Constructs a forest (*ensemble*) of decision trees. Each tree is constructed using a random subset of samples (with replacement, i.e. *bootstrapping*) and features (without replacement). Class votes (classification) or values (regression) are aggregated across trees and a final prediction is made. With bootstrap aggregation ("*bagging*"), samples not included in one tree can be used to test other trees, enabling an internal error rate to be calculated that approximates cross-validation accuracy.
 
@@ -55,7 +55,7 @@ Limitations: Overfits when the number of features greatly exceeds the number of 
 knitr::include_graphics("./ml_figures/Gradient_boosting.png")
 ```
 
-**Gradient Boosting Machine**
+## **Gradient Boosting Machine**
 
 Constructs a series of decision trees, beginning with a base decision tree. Subsequent trees predict the error of the previous tree, which is multiplied by a weight (i.e. undergoing "*shrinkage*"), added to the previous prediction, and all trees are "ensembled" to make the final predictor. Each iteration seeks to minimize loss using gradient descent. The sequential addition of improved learners is called "*boosting*".  
 
@@ -71,7 +71,7 @@ Limitations: Models cannot be trained in parallel because of sequential structur
 knitr::include_graphics("./ml_figures/K_nearest_neighbour.png")
 ```
 
-**K Nearest Neighbours**
+## **K Nearest Neighbours**
 
 Transforms observations into a distance matrix, then assigns the value of the majority class (classification) or average value (regression) of the observation's k nearest neighbours.
 
@@ -88,7 +88,7 @@ knitr::include_graphics("./ml_figures/Linear_regression.png")
 
 ```
 
-**Linear Regression**
+## **Linear Regression**
 
 Fits a straight line to predict an outcome, using a linear combination of predictor feature coefficients (B). The objective is to minimize the residuals (squared difference) between X and fitted Y.
 
@@ -102,7 +102,7 @@ Note: Linear regression is generally not used for machine learning tasks on its 
 knitr::include_graphics("./ml_figures/PLS_PCR.png")
 ```
 
-**PLS and PCR**
+## **PLS and PCR**
 
 *Partial least squares regression* transforms predictors into latent variables (components), that explain variance in predictors and responses, followed by linear regression using components as predictors. 
 
@@ -120,7 +120,7 @@ Limitations: Latent factors and principal components are not directly interpreta
 knitr::include_graphics("./ml_figures/Regularized_regression.png")
 ```
 
-**Regularized Regression**
+## **Regularized Regression**
 
 L1 (*lasso*) and L2 (*ridge*) penalties shrink coefficients of low importance and collinear features towards 0, or to exactly 0, depending on alpha value.
 
@@ -136,7 +136,7 @@ Limitations: Overfits when the number of features greatly exceeds the number of 
 knitr::include_graphics("./ml_figures/Neural_network.png")
 ```
 
-**Neural Network**
+## **Neural Network**
 
 Inspired by biological neural circuitry, the fundamental architecture of a neural network is a series of layers of neurons (i.e. *nodes*). Nodes are the fundamental unit of neural networks, receiving an input or weighted sum of inputs, applying a linear regression using  weights and biases, and "activating" based on an *activation function* (e.g. softmax, sigmoid, rectified linear unit). Nodes are arranged in *layers*, requiring an input and output layer, and one or more hidden layers. Neural networks are trained via forward propagation (inputs flow through the nodes towards the output layer, which makes a prediction) and back propagation (adjusting node weights and biases using gradient descent). The interconnectivity of nodes and nonlinear activation functions enable leveraging complex patterns underlying the predictive signals in a dataset. A *multi-layer perceptron* with one hidden layer is an example of a simple feedforward neural network.
 
@@ -152,7 +152,7 @@ Limitations: The number of hyperparameters adjusted scales with risk of overfitt
 knitr::include_graphics("./ml_figures/Support_vector_machine.png")
 ```
 
-**Support Vector Machine**
+## **Support Vector Machine**
 
 Transforms observations into n-dimensions, and draws a boundary (classification) or function (regression) (i.e. "hyperplane"). Observations closest to the hyperplane are called "*support vectors*". SVM seeks to maximize the distance between support vectors of different classes (the "margin"). A non-linear boundary can be drawn by applying the "*kernel trick*", which transforms the datapoints into a higher-dimension space.
 
