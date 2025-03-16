@@ -434,6 +434,9 @@ model.loop = do.call(rbind, lapply(1:15, function(iter) {
     t2 = Sys.time()
     t2 - t1
     
+    # record best model R2
+    min.rmse = min(model.ml$results["RMSE"])
+    
 # Reprocess testing data to have proper features
 vandeputte.testing.rebuilt.processed = process.for.model(nishijima.model.rebuilt, vandeputte.testing)
 
@@ -454,7 +457,8 @@ vandeputte.testing.rebuilt.processed = log(vandeputte.testing.rebuilt.processed+
                pred = model.output,
                iter = iter,
                model = model,
-               time = as.numeric(t2 - t1))
+               time = as.numeric(t2 - t1),
+               internal.rmse = min.rmse)
 }))}))
 t3 <- Sys.time()
 t3 - t0
@@ -499,7 +503,23 @@ ggplot(model.loop[,c("iter", "model", "time")] %>% distinct())+
 # RandomForest is fast
 ```
 
-This took about 45 minutes to run. Now we will evaluate the performance by calculating the Pearson correlation coefficients for each model and each iteration.
+This took about 45 minutes to run. 
+
+Next, lets check the internal validation *RMSE*, the loss function caret uses to select the optimal hyperparameters.
+
+```{r}
+ggplot(model.loop[,c("iter", "model", "internal.rmse")] %>% distinct())+
+  geom_boxplot(aes(x = model, y=internal.rmse))+
+  geom_point(aes(x =  model, y=internal.rmse), size=2.5, color="black")+
+  geom_point(aes(x =  model, y=internal.rmse), size=1.5, color="white")+
+  geom_point(aes(x =  model, y=internal.rmse, color= model), size=1.5, alpha=0.6)+
+  theme_bw()+theme(legend.position="none")+
+  labs(x="Model", y="Internal Validation\nRMSE")
+```
+
+From the internal validation data (based on how caret selects optimal models), it appears like gradient boosting machine and random forest are slightly superior to XGBoost because they have lower RMSE values.
+
+Now we will evaluate the performance by calculating the Pearson correlation coefficients for each model and each iteration.
 
 ```{r}
 # plot pearson values
@@ -518,7 +538,7 @@ model.loop.pearson.plot
 
 From the above, we can conclude that XGBoost (xgbTree) performs well, but variably, on the validation data set.
 
-Other (faster!) models perform comparably, like elastic net (glmnet) and random forest (ranger). 
+Other models perform comparably, like elastic net (glmnet) and random forest (ranger). 
 
 Importantly, we see that gradient boosting machine (gbm) has a slightly superior performance.
 

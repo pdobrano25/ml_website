@@ -6,6 +6,8 @@ This site is a portfolio of projects related to tabular machine learning.
 
 The objective is to provide examples of workflows that enable predicting *something useful* from high dimensional data. 
 
-Under **Models**, several common machine learning algorithms are listed, illustrated, and described.
+**Models**: common machine learning algorithms are listed, illustrated, and described.
 
-Under **Projects**, several machine learning workflows (in R) are provided based on existing publications by other research groups. In most cases, analyses are validated and extended.
+**Projects**: machine learning workflows (in R) are provided based on existing publications by other research groups. In most cases, analyses are validated and extended.
+
+**About**: source code for analyses, and a list of publications by Peter Dobranowski.
