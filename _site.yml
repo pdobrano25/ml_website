@@ -1,15 +1,26 @@
 name: "PDobrano"
+
+output_dir: "docs"
+
 navbar:
   title: "PDobrano"
-
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Projects"
+      menu:
+        - text: "Microbial Load Predictor"
+          href: mlp_predictor/mlp_predictor.html
+    - text: "Models"
+      href: ml_models/ml_models.html
+    - text: "About"
+      href: about.html   
       
 output:
   html_document:
     theme: cosmo
-    toc: true      
-    in_header: navbar.html
+    toc: true
+    toc_float: true
     
-output_dir: "docs"
-
       
 # rmarkdown::render_site() to update site
