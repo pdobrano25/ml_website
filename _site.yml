@@ -10,9 +10,9 @@ navbar:
     - text: "Projects"
       menu:
         - text: "Microbial Load Predictor"
-          href: mlp_predictor/mlp_predictor.html
+          href: docs/mlp_predictor/mlp_predictor.html
     - text: "Models"
-      href: ml_models/ml_models.html
+      href: docs/ml_models/ml_models.html
     - text: "About"
       href: about.html   
       

@@ -1,7 +1,6 @@
 ---
 title: "MLP Validation"
-output: rmarkdown::html_document
-site: "PDobrano"
+
 ---
 
 ```{r setup, include=FALSE}
