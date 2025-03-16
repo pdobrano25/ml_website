@@ -1,5 +1,6 @@
 ---
-title: "Tabular Machine Learning"
+title: "Machine Learning Models"
+output: html_document
 ---
 
 

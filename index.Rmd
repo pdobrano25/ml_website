@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Projects"
-output: html
+output: html_document
 ---
 
 This site is a portfolio of projects related to tabular machine learning.
