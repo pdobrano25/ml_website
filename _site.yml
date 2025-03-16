@@ -1,6 +1,6 @@
 name: "PDobrano"
 navbar:
-  title: "Machine Learning Projects"
+  title: "PDobrano"
   left:
     - text: "Home"
       href: index.html
@@ -12,7 +12,10 @@ navbar:
           href: mlp_validation.html
     - text: "About"
       href: about.html
-      
+output:
+  html_document:
+    theme: cosmo
+    toc: true      
       
 output_dir: "docs"
 
