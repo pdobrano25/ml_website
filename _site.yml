@@ -1,9 +1,10 @@
+output_dir: "docs"
 name: "PDobrano"
 navbar:
   title: "Machine Learning Projects"
   left:
     - text: "Home"
-      href: index.Rmd
+      href: index.html
     - text: "Machine Learning Models"
       href: ml_figures.html    
     - text: "Projects"
@@ -11,7 +12,7 @@ navbar:
         - text: "Microbial Load Predictor"
           href: mlp_validation.html
     - text: "About"
-      href: about.Rmd
+      href: about.html
       
       
 # rmarkdown::render_site() to update site
