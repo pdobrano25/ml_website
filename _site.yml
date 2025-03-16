@@ -4,7 +4,7 @@ navbar:
   left:
     - text: "Home"
       href: index.html
-    - text: "Machine Learning Models"
+    - text: "Models"
       href: ml_figures.html    
     - text: "Projects"
       menu:
@@ -12,6 +12,7 @@ navbar:
           href: mlp_validation.html
     - text: "About"
       href: about.html
+      
 output:
   html_document:
     theme: cosmo
