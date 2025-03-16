@@ -1,0 +1,17 @@
+name: "PDobrano"
+navbar:
+  title: "Machine Learning Projects"
+  left:
+    - text: "Home"
+      href: index.Rmd
+    - text: "Machine Learning Models"
+      href: ml_figures.html    
+    - text: "Projects"
+      menu:
+        - text: "Microbial Load Predictor"
+          href: mlp_validation.html
+    - text: "About"
+      href: about.Rmd
+      
+      
+# rmarkdown::render_site() to update site
