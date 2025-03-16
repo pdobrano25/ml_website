@@ -1,5 +1,6 @@
 ---
 title: "About"
+output: html
 ---
 
 Source code for this website can be found here: https://github.com/pdobrano25/ml_website
