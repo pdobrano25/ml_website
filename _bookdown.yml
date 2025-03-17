@@ -1,0 +1,19 @@
+---
+book_filename: "PDobrano"
+
+output_dir: "docs"
+
+delete_merged_file: true  # Prevents Bookdown from merging all chapters into one file
+
+rmd_files: [
+  "index.Rmd",
+  "mlp_validation/mlp_validation.Rmd",
+  "ml_models/ml_figures.Rmd",
+  "about.Rmd"]
+  
+repo: https://github.com/pdobrano25/ml_website  # Link to GitHub repo
+
+---
+
+# bookdown::render_book("index.Rmd")
+

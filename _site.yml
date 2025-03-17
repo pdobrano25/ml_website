@@ -2,6 +2,8 @@ name: "PDobrano"
 
 output_dir: "docs"
 
+include: ["*.Rmd", "ml_models/ml_figures.Rmd", "mlp_validation/*.Rmd"]
+
 navbar:
   title: "PDobrano"
   left:
@@ -10,9 +12,9 @@ navbar:
     - text: "Projects"
       menu:
         - text: "Microbial Load Predictor"
-          href: docs/mlp_predictor/mlp_predictor.html
-    - text: "Models"
-      href: docs/ml_models/ml_models.html
+          href: mlp_validation/mlp_validation.html
+    - text: "Machine Learning Models"
+      href: ml_models/ml_figures.html
     - text: "About"
       href: about.html   
       

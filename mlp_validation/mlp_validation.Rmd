@@ -1,11 +1,10 @@
 ---
-title: "MLP Validation"
-
+title: "Microbial Load Predictor"
+output: bookdown::html_document2
 ---
 
-```{r setup, include=FALSE}
+```{r setup_mlp, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-setwd("~/Documents/PhD/ml_website/mlp_validation")
 library("dplyr")
 ```
 
@@ -33,7 +32,7 @@ Here are the first 10 rows of the training data, the first 4 features, and the m
 ```{r}
 
 # load their XGBoost model (a caret object)
-nishijima.model = readRDS("./model.16S_rRNA.rds")
+nishijima.model = readRDS("mlp_validation/model.16S_rRNA.rds")
 
 # extract the training data
 nishijima.training = nishijima.model$trainingData
@@ -82,7 +81,7 @@ We can also download these data from Nishijima's github, however, they do not ha
 ```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
 
 # load testing data (feature counts)
-vandeputte.testing = read.csv("./Vandeputte_2017_16S.tsv", sep="\t") # supp table 14
+vandeputte.testing = read.csv("mlp_validation/Vandeputte_2017_16S.tsv", sep="\t") # supp table 14
 
 # delete the sample name
 vandeputte.testing$X = NULL
@@ -91,7 +90,7 @@ vandeputte.testing$X = NULL
 vandeputte.testing = sweep(vandeputte.testing, 1, rowSums(vandeputte.testing), FUN = "/")
 
 # load microbial load measurements
-vandeputte.testing.outcome = read.csv("./41586_2017_BFnature24460_MOESM14_ESM.csv")
+vandeputte.testing.outcome = read.csv("mlp_validation/41586_2017_BFnature24460_MOESM14_ESM.csv")
 
 # rename columns for easy access
 colnames(vandeputte.testing.outcome) = c("Sample", "Health.status", "outcome", "Enterotype")
@@ -244,8 +243,8 @@ Let's rebuild their training data from the original source and process it in a w
 
 ```{r, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 
-vandeputte.training.rebuilt = read.csv("./2025_03_05_vandeputte_otu_unrarefied.csv")
-vandeputte.load.rebuilt = read.csv("./2025_03_05_vandeputte_load.csv")[,c("X", "Cell_count_per_gram", "ID_Number", "Day_Number")]
+vandeputte.training.rebuilt = read.csv("mlp_validation/2025_03_05_vandeputte_otu_unrarefied.csv")
+vandeputte.load.rebuilt = read.csv("mlp_validation/2025_03_05_vandeputte_load.csv")[,c("X", "Cell_count_per_gram", "ID_Number", "Day_Number")]
 
 # Note how many unique subjects there are:
 unique(vandeputte.load.rebuilt$ID_Number) %>% length()

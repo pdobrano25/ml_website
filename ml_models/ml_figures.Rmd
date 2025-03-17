@@ -1,10 +1,10 @@
 ---
 title: "Machine Learning Models"
-
+output: bookdown::html_document2
 ---
 
 
-```{r setup, include=FALSE} 
+```{r setup_ml_figures, include=FALSE} 
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE) 
 ```
 
@@ -18,7 +18,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE)
 
 ```{r, out.width = "800px"}
 # A visual description of the "decision tree"
-knitr::include_graphics("./ml_figures/Decision_tree.png")
+knitr::include_graphics("ml_models/ml_figures/Decision_tree.png")
 ```
 
 ## **Decision Tree**
@@ -34,7 +34,7 @@ Limitations: Predictions are made *step-wise*, so continuous variables cannot be
 
 ```{r, out.width = "800px"}
 # A visual description of the "random forest"
-knitr::include_graphics("./ml_figures/Random_forest.png")
+knitr::include_graphics("ml_models/ml_figures/Random_forest.png")
 ```
 
 ## **Random Forest**
@@ -50,7 +50,7 @@ Limitations: Overfits when the number of features greatly exceeds the number of 
 
 ```{r, out.width = "800px"}
 # A visual description of the "gradient boosting machine"
-knitr::include_graphics("./ml_figures/Gradient_boosting.png")
+knitr::include_graphics("ml_models/ml_figures/Gradient_boosting.png")
 ```
 
 ## **Gradient Boosting Machine**
@@ -66,7 +66,7 @@ Limitations: Models cannot be trained in parallel because of sequential structur
 
 ```{r, out.width = "800px"}
 # A visual description of the "k nearest neighbours"
-knitr::include_graphics("./ml_figures/K_nearest_neighbour.png")
+knitr::include_graphics("ml_models/ml_figures/K_nearest_neighbour.png")
 ```
 
 ## **K Nearest Neighbours**
@@ -82,7 +82,7 @@ Limitations: Tends to underfit.
 
 ```{r, out.width = "600px"}
 # A visual description of the "linear regression"
-knitr::include_graphics("./ml_figures/Linear_regression.png")
+knitr::include_graphics("ml_models/ml_figures/Linear_regression.png")
 
 ```
 
@@ -97,7 +97,7 @@ Note: Linear regression is generally not used for machine learning tasks on its 
 
 ```{r, out.width = "800px"}
 # A visual description of the "pls and pcr"
-knitr::include_graphics("./ml_figures/PLS_PCR.png")
+knitr::include_graphics("ml_models/ml_figures/PLS_PCR.png")
 ```
 
 ## **PLS and PCR**
@@ -115,7 +115,7 @@ Limitations: Latent factors and principal components are not directly interpreta
 
 ```{r, out.width = "800px"}
 # A visual description of the "regularized regression"
-knitr::include_graphics("./ml_figures/Regularized_regression.png")
+knitr::include_graphics("ml_models/ml_figures/Regularized_regression.png")
 ```
 
 ## **Regularized Regression**
@@ -131,7 +131,7 @@ Limitations: Overfits when the number of features greatly exceeds the number of 
 
 ```{r, out.width = "600px"}
 # A visual description of the "neural network"
-knitr::include_graphics("./ml_figures/Neural_network.png")
+knitr::include_graphics("ml_models/ml_figures/Neural_network.png")
 ```
 
 ## **Neural Network**
@@ -147,7 +147,7 @@ Limitations: The number of hyperparameters adjusted scales with risk of overfitt
 
 ```{r, out.width = "800px"}
 # A visual description of the "support vector machine"
-knitr::include_graphics("./ml_figures/Support_vector_machine.png")
+knitr::include_graphics("ml_models/ml_figures/Support_vector_machine.png")
 ```
 
 ## **Support Vector Machine**
@@ -157,3 +157,4 @@ Transforms observations into n-dimensions, and draws a boundary (classification)
 Strengths: Often performs competitively with other models, if the kernel is selected in accordance with the data structure.
 
 Limitations: SVM are typically outperformed by better models, like random forest.
+
