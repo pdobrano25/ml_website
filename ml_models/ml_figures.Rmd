@@ -10,7 +10,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE)
 
 ```
 
-```{r}
+```{r, prelude_chunk}
 # To convert pdf to png, use this:
 #plot.rreg = pdftools::pdf_convert("./ml_figures/Regularized_regression.pdf", format = "png", pages = 1, filenames = #"./ml_figures/Regularized_regression.png")
 #knitr::include_graphics("./ml_figures/Regularized_regression.png")
@@ -18,7 +18,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE)
 
 
 
-```{r, out.width = "800px"}
+```{r, decision_tree, out.width = "800px"}
 # A visual description of the "decision tree"
 knitr::include_graphics("ml_figures/Decision_tree.png")
 ```
@@ -34,7 +34,7 @@ Limitations: Predictions are made *step-wise*, so continuous variables cannot be
 
 
 
-```{r, out.width = "800px"}
+```{r, random_forest, out.width = "800px"}
 # A visual description of the "random forest"
 knitr::include_graphics("ml_figures/Random_forest.png")
 ```
@@ -50,7 +50,7 @@ Limitations: Overfits when the number of features greatly exceeds the number of 
 
 
 
-```{r, out.width = "800px"}
+```{r, gbm, out.width = "800px"}
 # A visual description of the "gradient boosting machine"
 knitr::include_graphics("ml_figures/Gradient_boosting.png")
 ```
@@ -66,7 +66,7 @@ Limitations: Models cannot be trained in parallel because of sequential structur
 
 
 
-```{r, out.width = "800px"}
+```{r, knn, out.width = "800px"}
 # A visual description of the "k nearest neighbours"
 knitr::include_graphics("ml_figures/K_nearest_neighbour.png")
 ```
@@ -82,7 +82,7 @@ Limitations: Tends to underfit.
 
 
 
-```{r, out.width = "600px"}
+```{r, lm, out.width = "600px"}
 # A visual description of the "linear regression"
 knitr::include_graphics("ml_figures/Linear_regression.png")
 
@@ -97,7 +97,7 @@ Note: Linear regression is generally not used for machine learning tasks on its 
 
 
 
-```{r, out.width = "800px"}
+```{r, pls_pcr, out.width = "800px"}
 # A visual description of the "pls and pcr"
 knitr::include_graphics("ml_figures/PLS_PCR.png")
 ```
@@ -115,7 +115,7 @@ Limitations: Latent factors and principal components are not directly interpreta
 
 
 
-```{r, out.width = "800px"}
+```{r, reg, out.width = "800px"}
 # A visual description of the "regularized regression"
 knitr::include_graphics("ml_figures/Regularized_regression.png")
 ```
@@ -131,7 +131,7 @@ Limitations: Overfits when the number of features greatly exceeds the number of 
 
 
 
-```{r, out.width = "600px"}
+```{r, nnet, out.width = "600px"}
 # A visual description of the "neural network"
 knitr::include_graphics("ml_figures/Neural_network.png")
 ```
@@ -147,7 +147,7 @@ Limitations: The number of hyperparameters adjusted scales with risk of overfitt
 
 
 
-```{r, out.width = "800px"}
+```{r, svm, out.width = "800px"}
 # A visual description of the "support vector machine"
 knitr::include_graphics("ml_figures/Support_vector_machine.png")
 ```

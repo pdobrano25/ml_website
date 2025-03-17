@@ -30,7 +30,7 @@ We will extract the training data from Nishijima's machine learning model.
 
 Here are the first 10 rows of the training data, the first 4 features, and the measured microbial load ("outcome"):
 
-```{r}
+```{r, load_training_data}
 
 # load their XGBoost model (a caret object)
 nishijima.model = readRDS("model.16S_rRNA.rds")
@@ -51,7 +51,7 @@ If we glance at the training data, we see they log-transformed the data, which i
 
 Here is the distribution of *Faecalibacterium prausnitzii*, a highly abundant and prevalent gut microbe:
 
-```{r}
+```{r, training_data_comments_1}
 
 # check normality
 hist(nishijima.training[,1], 
@@ -64,7 +64,7 @@ In order to log-transform, 0 values had to be replaced with a small *pseudocount
 
 Here is a distribution of the minimum values of all taxa:
 
-```{r}
+```{r, training_data_comments_2}
 
 # was the same value imputed for 0?
 apply(nishijima.training, 1, min) %>% hist(xlab = "Minimum value", main="Pseudocount distribution")
@@ -79,7 +79,7 @@ The **testing data** were obtained from [Vandeputte 2017](https://www.nature.com
 
 We can also download these data from Nishijima's github, however, they do not have the outcome data appended. So, let's pull the original source instead.
 
-```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+```{r, load_testing_data, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
 
 # load testing data (feature counts)
 vandeputte.testing = read.csv("Vandeputte_2017_16S.tsv", sep="\t") # supp table 14
@@ -103,7 +103,7 @@ vandeputte.testing.outcome$outcome = log(vandeputte.testing.outcome$outcome, bas
 nrow(vandeputte.testing.outcome) == nrow(vandeputte.testing)
 
 ```
-```{r}
+```{r, view_testing_data}
 # here are the first 10x10 dimensions of the testing data
 vandeputte.testing[1:10,c(1:4)]
 ```
@@ -118,7 +118,7 @@ We will compare the performance using **Internal Validation** (performed during 
 
 Here, we will extract the best model from Nishijima's saved model object:
 
-```{r}
+```{r, internal_validation_1}
 
 # extract Internal Validation predictions - from caret's "final model"
 nishijima.model.predictions = nishijima.model$pred %>%
@@ -141,13 +141,13 @@ nishijima.model.predictions = nishijima.model$pred %>%
 
 Nishijima uses Pearson correlation coefficients to evaluate the predictive performance of their model. This should be appropriate because we're working on a regression problem to predict a continuous variable. The outcome is log-transformed microbial load, which is approximately normally distributed.
 
-```{r}
+```{r, internal_validation_2}
 hist(nishijima.model.predictions$obs, main="Microbial Load Distrubtion", xlab="Measured Microbial Load")
 ```
 
 Let's see what the Pearson correlation coefficient is between the true (measured) values and the predicted (model output) values:
 
-```{r}
+```{r, internal_validation_3}
 
 # Here's a scatter plot with embedded correlation
 
@@ -170,7 +170,7 @@ Good, this appears to recapitulate Nishijima's work.
 
 Now, let's check the model's performance on the testing data.
 
-```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+```{r, external_validation_1, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
 
 # do features in model and testing data overlap?
 
@@ -220,7 +220,7 @@ testing.predictions = predict(nishijima.model, vandeputte.testing.processed)
 testing.predictions = data.frame(pred = testing.predictions,
                                  obs = vandeputte.testing.outcome$outcome)
 ```
-```{r}
+```{r, external_validation_2}
 # Lastly, check Pearson correlation
 ggpubr::ggscatter(testing.predictions, 
           x = "obs", y = "pred",
@@ -242,7 +242,7 @@ Let's rebuild their training data from the original source and process it in a w
 
 ## Rebuild training data
 
-```{r, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+```{r, rebuild_training_data_1, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 
 vandeputte.training.rebuilt = read.csv("2025_03_05_vandeputte_otu_unrarefied.csv")
 vandeputte.load.rebuilt = read.csv("2025_03_05_vandeputte_load.csv")[,c("X", "Cell_count_per_gram", "ID_Number", "Day_Number")]
@@ -278,7 +278,7 @@ vandeputte.training.rebuilt = log(vandeputte.training.rebuilt+van.pseudo.keep, b
 # Last, append outcome, matching by rownames
 vandeputte.training.rebuilt$outcome = log(vandeputte.load.rebuilt[rownames(vandeputte.training.rebuilt),]$Cell_count_per_gram, base=10)
 ```
-```{r}
+```{r, rebuild_training_data_2}
 vandeputte.training.rebuilt[1:10,c(1:4, ncol(vandeputte.training.rebuilt))]
 ```
 
@@ -286,7 +286,7 @@ We've rebuilt the training data, now we can re-train the predictor.
 
 ## Re-train model
 
-```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+```{r, retrain_model_1, echo=FALSE, cache=TRUE, results=FALSE, warning=FALSE, message=FALSE}
 
 # Use their training grid
 tune_grid = expand.grid(
@@ -331,7 +331,7 @@ nishijima.model.rebuilt.predictions = nishijima.model.rebuilt$pred %>%
   dplyr::select(ave.pred, rowIndex, obs) %>% distinct() %>% data.frame()
 ```
 
-```{r}
+```{r, retrain_model_2}
 
 # Here's a scatter plot with embedded correlation
 ggpubr::ggscatter(nishijima.model.rebuilt.predictions, 
@@ -350,7 +350,7 @@ Our rebuilt model is comparable to the original model in terms of internal valid
 
 How does it compare on the external validation set?
 
-```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+```{r, retrain_model_3, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
 
 # Reprocess testing data to have proper features
 vandeputte.testing.rebuilt.processed = process.for.model(nishijima.model.rebuilt, vandeputte.testing)
@@ -373,7 +373,7 @@ testing.predictions.rebuilt = data.frame(pred = testing.predictions.rebuilt,
                                  obs = vandeputte.testing.outcome$outcome)
 ```
 
-```{r}
+```{r, retrain_model_4}
 # Lastly, check Pearson correlation
 ggpubr::ggscatter(testing.predictions.rebuilt, 
           x = "obs", y = "pred",
@@ -409,12 +409,12 @@ We're also going to reduce the number of CV from 10 to 5, to save on time, but r
 
 Let's see how long these model took to build:
 
-```{r, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
 ml.models = c("ranger", "gbm", "xgbTree", "lm", "glmnet", "svmLinear", "svmRadial")
 ```
 
-```{r, echo=F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, loop_models, echo=F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
 
 t0 <- Sys.time()
 model.loop = do.call(rbind, lapply(1:15, function(iter) {
@@ -466,7 +466,7 @@ t3 - t0
 ```
 
 
-```{r, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
+```{r, loop_models_pearson, echo=FALSE, results=FALSE, warning=FALSE, message=FALSE}
 
 
 model.loop.pearson = do.call(rbind, lapply(1:15, function(seed) {
@@ -492,7 +492,7 @@ model.loop.pearson = do.call(rbind, lapply(1:15, function(seed) {
   }))}))
 ```
 
-```{r}
+```{r, plot_loop_models_time}
 # check how long each model takes to build
 ggplot(model.loop[,c("iter", "model", "time")] %>% distinct())+
   geom_boxplot(aes(x = model, y=time))+
@@ -508,7 +508,7 @@ This took about 45 minutes to run.
 
 Next, lets check the internal validation *RMSE*, the loss function caret uses to select the optimal hyperparameters.
 
-```{r}
+```{r, plot_loop_models_rmse}
 ggplot(model.loop[,c("iter", "model", "internal.rmse")] %>% distinct())+
   geom_boxplot(aes(x = model, y=internal.rmse))+
   geom_point(aes(x =  model, y=internal.rmse), size=2.5, color="black")+
@@ -522,7 +522,7 @@ From the internal validation data (based on how caret selects optimal models), i
 
 Now we will evaluate the performance by calculating the Pearson correlation coefficients for each model and each iteration.
 
-```{r}
+```{r, plot_loop_models_pearson}
 # plot pearson values
 model.loop.pearson.plot = ggplot(model.loop.pearson)+
   geom_boxplot(aes(x = model, y=pearson))+
