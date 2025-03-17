@@ -1,6 +1,5 @@
 ---
 title: "About"
-output: bookdown::html_document2
 ---
 
 Source code for this website can be found here: https://github.com/pdobrano25/ml_website
