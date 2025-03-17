@@ -2,8 +2,8 @@ name: "PDobrano"
 
 output_dir: "docs"
 
-include: ["./mlp_validation/*", "./ml_models/*"]  # Add this line
-
+include: _includes/navbar.html
+  
 navbar:
   title: "PDobrano"
   left:
@@ -12,17 +12,11 @@ navbar:
     - text: "Projects"
       menu:
         - text: "Microbial Load Predictor"
-          href: ./mlp_validation/mlp_validation.html
+          href: mlp_validation.html
     - text: "Machine Learning Models"
-      href: ./ml_models/ml_figures.html
+      href: ml_figures.html
     - text: "About"
       href: about.html   
 
-output:
-  html_document:
-    theme: cosmo
-    toc: true
-    toc_float: true
-      
 # rmarkdown::render_site() 
 
