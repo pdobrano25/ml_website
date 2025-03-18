@@ -1,5 +1,6 @@
-### Constructin ml_website
+### Constructing ml_website
 
+save.image("2025_03_18_ml_website_image.Renv")
 
 # :: render navbar --------------------------------------------------------
 
@@ -18,11 +19,18 @@ unlink("docs", recursive = TRUE)
 rmarkdown::render(input = "index.Rmd",
                   output_options = list(
                          theme = "cosmo"))
-html_content <- readLines("docs/index.html", warn = FALSE)
-nav_start <- grep("<div class=\"navbar navbar-default  navbar-fixed-top\" role=\"navigation\">", html_content)
-nav_end <- grep("<h1 class=\"title toc-ignore\">Machine Learning Projects</h1>", html_content[nav_start:length(html_content)])[1] + nav_start + 1
-navbar_html <- html_content[nav_start:nav_end]
-
+html_content <- readLines("index.html", warn = FALSE)
+nav_start <- grep("<div.*navbar", html_content, ignore.case = TRUE)[1]
+nav_end <- grep("<p>", html_content[nav_start:length(html_content)])[1] + nav_start -2
+nav_remove <- grep("<h1 class=\"title toc-ignore\">Machine Learning Projects</h1>", html_content)
+nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
+navbar_html <- c(
+  html_content[nav_index],
+  '<style>',
+  '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',  # Keep fixed behavior
+  '  body { padding-top: 70px; }',  # Offset content below navbar (adjust 70px as needed)
+  '</style>'
+)
 # Write navbar.html
 dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
@@ -34,7 +42,7 @@ navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
 
 # List files
 files <- c("index.Rmd", "about.Rmd", "mlp_validation/mlp_validation.Rmd",
-           "ml_models/ml_figures.Rmd")
+           "gevers_validation/gevers_validation.Rmd", "ml_models/ml_figures.Rmd")
 
 # Clean output
 unlink("docs", recursive = TRUE)

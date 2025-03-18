@@ -6,7 +6,6 @@ title: "Microbial Load Predictor"
 ```{r setup_mlp, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library("dplyr")
-# note: wd gets set during rendering
 ```
 
 ## Microbial Load Predictor
@@ -405,14 +404,15 @@ Let's re-run this pipeline using different machine learning models.
 We'll use common models included in caret:
 linear models like **elastic net**, **support vector machines**, tree-based models like **random forest**, **gradient boosting machine**, and the original: **XGBoost**.
 
-We're also going to reduce the number of CV from 10 to 5, to save on time, but repeat each model evaluation 15 times to see how variable the CV process is.
-
-Let's see how long these model took to build:
-
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
 ml.models = c("ranger", "gbm", "xgbTree", "lm", "glmnet", "svmLinear", "svmRadial")
 ```
+
+We're also going to reduce the number of CV from 10 to 5, to save on time, but repeat each model evaluation 15 times to see how variable the CV process is.
+
+Let's see how long these model took to build:
+
 
 ```{r, loop_models, echo=F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
 
@@ -537,9 +537,9 @@ model.loop.pearson.plot
 
 ```
 
-From the above, we can conclude that XGBoost (xgbTree) performs well, but variably, on the validation data set.
+## Conclusions 
 
-Other models perform comparably, like elastic net (glmnet) and random forest (ranger). 
+From the above, we can conclude that XGBoost (xgbTree) performs well, but variably, on the validation data set. Other models perform comparably, like elastic net (glmnet) and random forest (ranger). 
 
 Importantly, we see that gradient boosting machine (gbm) has a slightly superior performance.
 

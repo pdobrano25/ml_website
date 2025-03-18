@@ -1,0 +1,281 @@
+---
+title: "Predicting Crohn's Disease (Gevers)"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("dplyr")
+```
+
+# **Validating** the analysis
+
+Gevers et al's 2014 Cell Host and Microbe study is one of the first and most highly cited studies on the microbiome in IBD.
+[Link to paper](https://pubmed.ncbi.nlm.nih.gov/24629344/)
+
+This study characterizes the microbiome obtained from various intestinal compartments (e.g. ileum, rectum, and stool),and applies sparse logistic regression (L1 regularized) to identify bacterial signatures that discriminate CD from controls.
+
+Below, we attempt to validate their model and evaluate additional models that may boost the performance.
+
+## Data loading
+
+We will download data from Dan Knights lab's [Machine Learning Repository](https://knightslab.org/MLRepo/docs/gevers_control_cd_rectum.html).
+
+This includes a metadata file and feature table (16S read counts).
+
+```{r, data_loading, echo=FALSE, warning=FALSE, message=FALSE}
+
+# load metadata
+gevers_data <- read.csv("../gevers_validation/gevers_ileum_disease.txt", sep="\t")
+colnames(gevers_data) = c("Sample", "CD")
+
+# load 16S data
+gevers_16S <- read.csv("../gevers_validation/gevers_ileum_taxa.txt", sep="\t")
+# make OTU ID rownames
+rownames(gevers_16S) <- gevers_16S$X.OTU.ID
+# delete redundant OTU ID column
+gevers_16S$X.OTU.ID <- NULL
+
+# take intersect of samples
+gevers_16S <- gevers_16S[,gevers_data$Sample]
+
+# remove Sample column
+gevers_16S$Sample = NULL
+
+# by convention, I like samples to be rows
+gevers_16S <- t(gevers_16S) %>% data.frame()
+
+hist(rowSums(gevers_16S), main="Sequencing Depth", xlab="Reads per sample")
+```
+
+Already we can see that there are very few reads per sample. This study was published in 2014, and biopsies were used for this microbiome analysis, which explains the low data coverage.
+
+There are 446 samples, with a minimum read count of:
+```{r, min_read, echo=F}
+rowSums(gevers_16S) %>% min
+```
+
+## Data processing
+
+Ordinarily, I prefer to rarefy data to account for uneven sequencing effort across samples. However, I think rarefying to this number of reads would harm the integrity of the data. Therefore, we will simply scale read counts to 100% instead.
+
+```{r, tss, echo=F}
+gevers_16S = sweep(gevers_16S, 1, rowSums(gevers_16S), FUN = "/")
+```
+
+The authors mention that they use genus-level taxonomy to build their classifier, so let's do that, too. 
+
+Here are the first 5 columns and rows of the genus-level relative abundance data:
+
+```{r, genus_level, echo=F}
+
+# melt
+gevers_16S_df <- reshape2::melt(as.matrix(gevers_16S))
+colnames(gevers_16S_df) <- c("sample", "taxa", "value")
+
+# remove all text before g__
+gevers_16S_df$LCA = gsub(".*?(g__)", "", gevers_16S_df$taxa)
+# remove "..s__" and any species identifier
+gevers_16S_df$LCA = sub("\\.\\.s__.*", "", gevers_16S_df$LCA)
+
+# remove any entry with k__, p__, c__, o__, f__
+gevers_16S_df = subset(gevers_16S_df, !grepl(paste(c("k__", "p__", "c__", "o__", "f__"), collapse="|"), LCA))
+
+# transform back into a matrix
+gevers_16S_gen <- reshape2::acast(gevers_16S_df, sample ~ LCA, value.var = "value", fun.aggregate=sum) %>% data.frame()
+
+gevers_16S_gen[1:5,1:5]
+
+```
+
+## Model construction
+
+We are going to try to use lasso regression to predict CD. First, we need to see whether our dataset is imbalanced.
+
+```{r, data_processing, echo=FALSE, warning=FALSE, message=FALSE}
+
+# log transform taxa, with pseudocount
+gevers_pseudo <- min(gevers_16S_gen[gevers_16S_gen!=0]) / 2
+gevers_16S_gen <- log(gevers_16S_gen+gevers_pseudo, base=2)
+
+# merge OTU_table with CD status
+gevers_16S_gen$Sample = rownames(gevers_16S_gen)
+gevers_16S_cd <- merge(gevers_16S_gen, gevers_data, by="Sample")
+
+# clean dataframe
+rownames(gevers_16S_cd) <- gevers_16S_cd$Sample
+gevers_16S_cd$Sample = NULL
+
+# make disease status a factor
+gevers_16S_cd$CD <- as.factor(gevers_16S_cd$CD)
+
+# what is the ratio of Control to CD?
+table(gevers_16S_cd$CD)
+```
+
+There is a slight **class imbalance** in the dataset, which can lead to a bias that increases the tendency for the model to guess a sample belongs to the larger class.
+
+Class imbalances can be approached a few ways, such as down sampling, up sampling with synthetic data, or simply balancing groups during cross-validation (CV).
+
+Let's follow the author's methods and build a lasso with balanced groups during CV:
+
+```{r, lasso, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+
+# first, we will construct 5 balanced folds
+set.seed(25)
+cv_folds <- caret::createFolds(y = gevers_16S_cd$CD, k = 5, returnTrain = TRUE)  # Stratified sampling
+
+gevers_16S_cd_lasso = caret::train(
+  CD ~ .,
+  data = gevers_16S_cd,
+  trControl = caret::trainControl(method="cv", 
+                                  index=cv_folds, 
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary),
+  tuneGrid = expand.grid(alpha = 1,  # set to 1 to turn off Ridge regression
+                         lambda = 10^seq(5,-5, length=100)),
+  metric = "ROC",
+  method = "glmnet",
+  preProc = c("center", "scale")
+)
+
+```
+
+## Model evaluation
+
+Now we can plot a ROC curve using each fold's predictions.
+
+```{r, roc_curve, echo=F, warning=FALSE, results=FALSE, message=FALSE}
+
+# select the final model
+gevers_16S_cd_lasso_best = subset(gevers_16S_cd_lasso$pred, lambda == gevers_16S_cd_lasso$bestTune$lambda)
+
+# build ROC curve
+roc_curve_all <- pROC::roc(gevers_16S_cd_lasso_best$obs, gevers_16S_cd_lasso_best$CD, levels = levels(gevers_16S_cd_lasso_best$obs))
+# convert ROC Curve to Data Frame
+roc_df <- data.frame(
+  specificity = (roc_curve_all$specificities),
+  sensitivity = roc_curve_all$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+roc_curve_ci <- pROC::ci.se(roc_curve_all, specificities = seq(0, 1, l = 100), boot.n = 2000)
+roc_curve_ci = data.frame(roc_curve_ci)
+colnames(roc_curve_ci) = c("lower", "mean", "upper")
+roc_curve_ci$spec = seq(0, 1, l = 100)
+
+```
+
+```{r, plot_auc, echo=F, warning=FALSE, message=FALSE}
+# plot Using ggplot2
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = roc_curve_ci, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = roc_df, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("ROC Curve with 95% CI", " (AUC: ", round(roc_curve_all$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+```
+
+
+This 5x CV AUC (0.786) suggests good performance in predicting CD from non-IBD controls using ileal biopsy microbiome samples. However, it is below what was reported in the original paper (0.85).
+
+Apart from potential differences in data pre-processing (which I circumvented by downloading from MLRepo), there is no obvious source of this reduced performance.
+
+# **Extending** the analysis
+
+At the time this paper was published, machine learning was not widely adopted in the microbiome literature.
+
+Lasso is a reasonable choice to built a predictive algorithm, but others (e.g. random forest) tend to be superior. Let's see if that assumption holds with this dataset, by repeating the analysis above with different algorithms and evaluating the internal validation AUCs.
+
+```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+# select models
+ml.models = c("ranger", "gbm", "xgbTree",  "glmnet", "svmLinear", "svmRadial")
+```
+
+```{r, loop_models, echo = F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+
+t1 <- Sys.time()
+gevers_model_loop <- do.call(rbind, lapply(1:15, function(iter){
+  do.call(rbind, lapply(ml.models, function(algo){
+  
+    # iter = 1
+    # algo = "ranger"
+# loop through models and iterate 15 times
+set.seed(iter)
+cv_folds <- caret::createFolds(y = gevers_16S_cd$CD, k = 5, returnTrain = TRUE)  # Stratified sampling
+
+# conditionally change tuneGrid for glmnet:
+if(algo == "glmnet"){
+  gevers_16S_cd_model = caret::train(
+  CD ~ .,
+  data = gevers_16S_cd,
+  trControl = caret::trainControl(method="cv", 
+                                  index=cv_folds, 
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = twoClassSummary),
+  tuneGrid = expand.grid(alpha = 1,  # set to 1 to turn off Ridge regression
+                         lambda = 10^seq(5,-5, length=100)),
+  metric = "ROC",
+  method = algo,
+  preProc = c("center", "scale")
+)
+
+}else{
+  # for all other models, use default
+  gevers_16S_cd_model = caret::train(
+  CD ~ .,
+  data = gevers_16S_cd,
+  trControl = caret::trainControl(method="cv", 
+                                  index=cv_folds, 
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = twoClassSummary),
+  metric = "ROC",
+  method = algo,
+  preProc = c("center", "scale")
+)
+
+}
+
+# extract data for plotting
+data.frame(model = algo,
+           iter = iter,
+           AUC = max(gevers_16S_cd_model$results$ROC))
+}))}))
+t2 <- Sys.time()
+
+t2-t1 # ~ 10 min
+
+```
+
+```{r, plot_loop, echo=F}
+
+# plot performance
+ggplot(gevers_model_loop)+
+  geom_boxplot(aes(x = model, y=AUC))+
+  geom_point(aes(x =  model, y=AUC), size=2.5, color="black")+
+  geom_point(aes(x =  model, y=AUC), size=1.5, color="white")+
+  geom_point(aes(x =  model, y=AUC, color= model), size=1.5, alpha=0.6)+
+  theme_bw()+theme(legend.position="none")+
+  labs(x="Model", y="Internal AUC")
+# 
+```
+
+Surprisingly, the assumption does not hold; the median lasso peformance is superior to all other models.
+
+
+## Conclusions
+
+Here, we replicated Gevers' analysis and concluded that while lasso is superior to other common machine learning models (based on internal validation performance). However, I could not replicate their published AUC (0.85).
+
+Of note, their 16S samples were sequenced to a very low depth, which means the contributions of rarer taxa likely weren't able to contribute to cross-validated performances. Additionally, external data sets were not used to validate the performance of the model.
+
+
+

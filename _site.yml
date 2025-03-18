@@ -13,6 +13,8 @@ navbar:
       menu:
         - text: "Microbial Load Predictor"
           href: mlp_validation.html
+        - text: "Predicting Crohn's Disease (Gevers)"
+          href: gevers_validation.html
     - text: "Machine Learning Models"
       href: ml_figures.html
     - text: "About"

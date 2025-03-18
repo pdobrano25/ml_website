@@ -9,7 +9,9 @@ This site is a portfolio of projects related to tabular machine learning.
 The objective is to provide examples of workflows that enable predicting *something useful* from high dimensional data. 
 
 **Projects**: machine learning workflows (in R) are provided based on existing publications by other research groups. In most cases, analyses are validated and extended.
+
  - [Microbial Load Predictor](https://pdobrano25.github.io/ml_website/mlp_validation.html)
+ - [Predicting Crohn's Disease (Gevers)](https://pdobrano25.github.io/ml_website/gevers_validation.html)
 
 [**Models**](https://pdobrano25.github.io/ml_website/ml_figures.html): common machine learning algorithms are listed, illustrated, and described.
 
