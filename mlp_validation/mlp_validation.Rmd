@@ -406,7 +406,7 @@ linear models like **elastic net**, **support vector machines**, tree-based mode
 
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
-ml.models = c("ranger", "gbm", "xgbTree", "lm", "glmnet", "svmLinear", "svmRadial")
+ml.models = c("gbm","glmnet","lm", "ranger","svmLinear","svmRadial","xgbTree")
 ```
 
 We're also going to reduce the number of CV from 10 to 5, to save on time, but repeat each model evaluation 15 times to see how variable the CV process is.

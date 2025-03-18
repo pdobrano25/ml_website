@@ -183,7 +183,7 @@ ggplot() +
 ```
 
 
-This 5x CV AUC (0.786) suggests good performance in predicting CD from non-IBD controls using ileal biopsy microbiome samples. However, it is below what was reported in the original paper (0.85).
+This 5x CV AUC (0.758) suggests good performance in predicting CD from non-IBD controls using ileal biopsy microbiome samples. However, it is below what was reported in the original paper (0.85).
 
 Apart from potential differences in data pre-processing (which I circumvented by downloading from MLRepo), there is no obvious source of this reduced performance.
 
@@ -195,7 +195,7 @@ Lasso is a reasonable choice to built a predictive algorithm, but others (e.g. r
 
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
-ml.models = c("ranger", "gbm", "xgbTree",  "glmnet", "svmLinear", "svmRadial")
+ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
 ```
 
 ```{r, loop_models, echo = F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}

@@ -1737,7 +1737,7 @@ tree-based models like <strong>random forest</strong>, <strong>gradient
 boosting machine</strong>, and the original:
 <strong>XGBoost</strong>.</p>
 <pre class="r"><code># select models
-ml.models = c(&quot;ranger&quot;, &quot;gbm&quot;, &quot;xgbTree&quot;, &quot;lm&quot;, &quot;glmnet&quot;, &quot;svmLinear&quot;, &quot;svmRadial&quot;)</code></pre>
+ml.models = c(&quot;gbm&quot;,&quot;glmnet&quot;,&quot;lm&quot;, &quot;ranger&quot;,&quot;svmLinear&quot;,&quot;svmRadial&quot;,&quot;xgbTree&quot;)</code></pre>
 <p>We’re also going to reduce the number of CV from 10 to 5, to save on
 time, but repeat each model evaluation 15 times to see how variable the
 CV process is.</p>
