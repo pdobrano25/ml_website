@@ -1,6 +1,8 @@
 ### Constructing ml_website
 
-save.image("2025_03_18_ml_website_image.Renv")
+load("2025_03_18_ml_website_image.Renv")
+
+#.  save.image("2025_03_18_ml_website_image.Renv")
 
 # :: render navbar --------------------------------------------------------
 

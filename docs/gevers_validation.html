@@ -1582,9 +1582,10 @@ analysis, which explains the low data coverage.</p>
 <div id="data-processing" class="section level2">
 <h2>Data processing</h2>
 <p>Ordinarily, I prefer to rarefy data to account for uneven sequencing
-effort across samples. However, I think rarefying to this number of
-reads would harm the integrity of the data. Therefore, we will simply
-scale read counts to 100% instead.</p>
+effort across samples (not without <a href="https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531">caveats</a>.
+However, I think rarefying to this number of reads would harm the
+integrity of the data. Therefore, we will simply scale read counts to
+100% instead.</p>
 <p>The authors mention that they use genus-level taxonomy to build their
 classifier, so let’s do that, too.</p>
 <p>Here are the first 5 columns and rows of the genus-level relative

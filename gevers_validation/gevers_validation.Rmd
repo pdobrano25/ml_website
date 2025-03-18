@@ -5,6 +5,8 @@ title: "Predicting Crohn's Disease (Gevers)"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library("dplyr")
+library("ggplot2")
+
 ```
 
 # **Validating** the analysis
@@ -56,7 +58,7 @@ rowSums(gevers_16S) %>% min
 
 ## Data processing
 
-Ordinarily, I prefer to rarefy data to account for uneven sequencing effort across samples. However, I think rarefying to this number of reads would harm the integrity of the data. Therefore, we will simply scale read counts to 100% instead.
+Ordinarily, I prefer to rarefy data to account for uneven sequencing effort across samples (not without [caveats](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531). However, I think rarefying to this number of reads would harm the integrity of the data. Therefore, we will simply scale read counts to 100% instead.
 
 ```{r, tss, echo=F}
 gevers_16S = sweep(gevers_16S, 1, rowSums(gevers_16S), FUN = "/")
