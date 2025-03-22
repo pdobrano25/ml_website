@@ -1,5 +1,5 @@
 ---
-title: "Predicting Crohn's Disease (Gevers)"
+title: "Predicting Crohn's Disease (Microbiome)"
 ---
 
 ```{r setup, include=FALSE}
@@ -91,7 +91,9 @@ gevers_16S_gen[1:5,1:5]
 
 ## Model construction
 
-We are going to try to use lasso regression to predict CD. First, we need to see whether our dataset is imbalanced.
+We are going to try to use lasso regression to predict CD. First, we need to process the data (e.g. log transform with a pseudocount). Interestingly, the authors do not state that they log-transformed their data.
+
+We should also evaluate whether our dataset is imbalanced.
 
 ```{r, data_processing, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -116,20 +118,23 @@ table(gevers_16S_cd$CD)
 
 There is a slight **class imbalance** in the dataset, which can lead to a bias that increases the tendency for the model to guess a sample belongs to the larger class.
 
-Class imbalances can be approached a few ways, such as down sampling, up sampling with synthetic data, or simply balancing groups during cross-validation (CV).
+Class imbalances can be approached a few ways, such as down-sampling, up-sampling with synthetic data, a hybrid approach, or simply ignoring them.
 
-Let's follow the author's methods and build a lasso with balanced groups during CV:
+Let's follow the author's methods and build a lasso without balancing groups during CV:
 
 ```{r, lasso, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 
-# first, we will construct 5 balanced folds
+# first, we will construct 5 folds
 set.seed(25)
-cv_folds <- caret::createFolds(y = gevers_16S_cd$CD, k = 5, returnTrain = TRUE)  # Stratified sampling
+cv_folds <- createFolds(gevers_16S_cd$CD, k = 5, returnTrain = TRUE)
+
+# Stratified sampling
 
 gevers_16S_cd_lasso = caret::train(
   CD ~ .,
   data = gevers_16S_cd,
   trControl = caret::trainControl(method="cv", 
+                                  number = 5,
                                   index=cv_folds, 
                                   savePredictions = TRUE,
                                   classProbs = TRUE,
@@ -140,6 +145,7 @@ gevers_16S_cd_lasso = caret::train(
   method = "glmnet",
   preProc = c("center", "scale")
 )
+
 
 ```
 
@@ -187,7 +193,92 @@ ggplot() +
 
 This 5x CV AUC (0.758) suggests good performance in predicting CD from non-IBD controls using ileal biopsy microbiome samples. However, it is below what was reported in the original paper (0.85).
 
-Apart from potential differences in data pre-processing (which I circumvented by downloading from MLRepo), there is no obvious source of this reduced performance.
+## Does log-transform explain the difference in performance?
+
+I noted above that the authors did not state they log transformed their data. Given they used regularized logistic regression, which assumes features are normally distributed, I want to check whether this impacts the results.
+
+Let's re-run our analysis without log-transforming:
+
+```{r, no_log, echo=F, results = T, warning=FALSE, message=FALSE}
+
+# Note: code is copied from above
+
+# transform back into a matrix
+gevers_16S_gen <- reshape2::acast(gevers_16S_df, sample ~ LCA, value.var = "value", fun.aggregate=sum) %>% data.frame()
+
+# do NOT log transform taxa, with pseudocount
+#gevers_pseudo <- min(gevers_16S_gen[gevers_16S_gen!=0]) / 2
+#gevers_16S_gen <- log(gevers_16S_gen+gevers_pseudo, base=2)
+
+# merge OTU_table with CD status
+gevers_16S_gen$Sample = rownames(gevers_16S_gen)
+gevers_16S_cd <- merge(gevers_16S_gen, gevers_data, by="Sample")
+
+# clean dataframe
+rownames(gevers_16S_cd) <- gevers_16S_cd$Sample
+gevers_16S_cd$Sample = NULL
+
+# make disease status a factor
+gevers_16S_cd$CD <- as.factor(gevers_16S_cd$CD)
+
+
+# first, we will construct 5 folds
+set.seed(25)
+cv_folds <- createFolds(gevers_16S_cd$CD, k = 5, returnTrain = TRUE)
+
+# Stratified sampling
+
+gevers_16S_cd_lasso = caret::train(
+  CD ~ .,
+  data = gevers_16S_cd,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  index=cv_folds, 
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary),
+  tuneGrid = expand.grid(alpha = 1,  # set to 1 to turn off Ridge regression
+                         lambda = 10^seq(5,-5, length=100)),
+  metric = "ROC",
+  method = "glmnet",
+  preProc = c("center", "scale")
+)
+
+# select the final model
+gevers_16S_cd_lasso_best = subset(gevers_16S_cd_lasso$pred, lambda == gevers_16S_cd_lasso$bestTune$lambda)
+
+# build ROC curve
+roc_curve_all <- pROC::roc(gevers_16S_cd_lasso_best$obs, gevers_16S_cd_lasso_best$CD, levels = levels(gevers_16S_cd_lasso_best$obs))
+# convert ROC Curve to Data Frame
+roc_df <- data.frame(
+  specificity = (roc_curve_all$specificities),
+  sensitivity = roc_curve_all$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+roc_curve_ci <- pROC::ci.se(roc_curve_all, specificities = seq(0, 1, l = 100), boot.n = 2000)
+roc_curve_ci = data.frame(roc_curve_ci)
+colnames(roc_curve_ci) = c("lower", "mean", "upper")
+roc_curve_ci$spec = seq(0, 1, l = 100)
+
+# plot Using ggplot2
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = roc_curve_ci, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = roc_df, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("No log-transform\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+```
+
+Clearly, and not surprisingly, log-transforming the data did not cause the performance to suffer.
+
+Apart from other potential differences in data pre-processing (which I circumvented by downloading from MLRepo), there is no obvious source of this reduced performance.
 
 # **Extending** the analysis
 

@@ -1,0 +1,390 @@
+---
+title: "Predicting IBD (Microbiome)"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("dplyr")
+library("ggplot2")
+
+```
+
+# **Validating** the analysis
+
+The [**curatedMetagenomicData**](https://waldronlab.io/curatedMetagenomicData/) (**CMD**) is a large collection of microbiome datasets, re-processed using a standard pipeline to minimize batch effects.
+
+Ning et al. (2023) perform a meta-analysis of microbiome studies using the CMD to predict IBD from non-IBD controls.
+[Link to paper](https://www.nature.com/articles/s41467-023-42788-0)
+
+The authors apply *leave-one-cohort-out* (LOCO) cross-validation to evaluate whether larger, multi-cohort datasets can be used to predict IBD in a validation cohort.
+
+Below, we attempt to validate their model and evaluate additional models that may boost the performance.
+
+Of note, only cohorts available in the CMD will be used.
+
+## Data loading
+
+CMD includes 3 out of 6 of the cohorts used in the study. 
+
+These include IBD and non-IBD stool microbiome samples from the Human Microbiome Project 2 ("HMP"), LifelinesDeep ("LLD"), and Nielsen 2014 ("NIE") cohorts. 
+
+Note: VilaAV_2018 was combined with LifelinesDeep in the publication.
+
+```{r, sample_selection, echo=FALSE, results= F, warning=FALSE, message=FALSE}
+
+# select these cohorts:
+c("Puxi", "HMP", "LifeLD", "Nielsen", "Franzosa", "HeQ")
+# use first sampling to avoid repeat measures
+# imbalanced cohorts --> "randomly remove some normal controls to maintain a ratio of 1:2 to 1:3
+# pseudocount of 1e10-5 + log10()
+
+# list studies
+# curatedMetagenomicData::sampleMetadata$study_name %>% unique()
+
+# select studies and take unique subjects
+cmd_samples = curatedMetagenomicData::sampleMetadata %>% 
+  # select 3 / 6 studies available
+  subset(study_name %in% c( "HMP_2019_ibdmdb", "LifeLinesDeep_2016", "NielsenHB_2014", "VilaAV_2018")) %>%
+  # select first instance per individual
+  subset(study_condition %in% c("control", "IBD")) %>%
+  group_by(subject_id) %>%
+  slice_head(n = 1)
+```
+
+```{r, download_data, results=F, echo=FALSE, warning=FALSE, message=FALSE}
+
+# download selected samples
+cmd_data = curatedMetagenomicData::returnSamples(cmd_samples, "relative_abundance", rownames = "short")
+# 832 taxa, 1938 samples
+
+# extract feature_table
+cmd_data = assay(cmd_data) %>% t() %>% data.frame()
+dim(cmd_data) # 832 taxa, 1938 samples
+
+# create mapping file
+cmd_samples = cmd_samples[,c("study_name", "sample_id", "study_condition", "antibiotics_current_use", "gender", "age")]
+
+# check sample names match
+sum(rownames(cmd_data) == cmd_samples$sample_id) / nrow(cmd_samples) * 100
+# all samples are accounted for
+
+# merge LifeLinesDeep_2016 and VilaAV_2018 as done in the paper
+cmd_samples$study_name = ifelse(cmd_samples$study_name %in% c("LifeLinesDeep_2016", "VilaAV_2018"),
+                                "LifeLD_Vila", cmd_samples$study_name)
+
+```
+
+```{r, preview_sample_breakdown, echo=F}
+table(cmd_samples[,c("study_name", "study_condition")])
+```
+
+We can see there is some fairly large imbalances in the data sets. The authors downsampled the larger class until the imbalance was closer to "1:2 to 1:3". It appears that they performed this balancing once, and discarded the rest of the data from the analyses thereafter.
+
+Instead of doing this (because we can't fully replicate their results without knowing which samples they discarded), we will evaluate the impact of balancing using an algorithm called **SCUT** [(SMOTE and Cluster-based Undersampling)](https://www.scitepress.org/Link.aspx?doi=10.5220/0005595502260234)
+
+Ning used Random Forest, which we will use to evaluate LOCO AUC.
+
+```{r, process_data, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Here we'll prepare the data for ML, and add the class label (IBD)
+
+# First, check that their pseudocount was correct
+min(cmd_data[cmd_data!=0]) # 6e-5
+# while theirs is 1e-5
+# min/6 is reasonable, but unconventional
+# so let's add min/2 and apply a log-transform
+cmd_data = log10(cmd_data+min(cmd_data[cmd_data!=0])/2)
+
+# Next, we'll append the class label
+cmd_samples$study_short = ifelse(grepl("HMP", cmd_samples$study_name), "HMP",
+                                 ifelse(grepl("Nielsen", cmd_samples$study_name), "NIE",
+                                        "LLD"))
+# this will be the samples' new id, from which we can unpack the study name
+cmd_samples$study_sample = paste(cmd_samples$study_short, cmd_samples$sample_id, sep="_")
+# add sample id column for merging
+cmd_data$sample_id = rownames(cmd_data)
+
+# merge
+cmd_data_merge = merge(cmd_data, cmd_samples[,c("sample_id", "study_sample", "study_condition")], by="sample_id")
+# clean data
+cmd_data_merge$sample_id = NULL
+rownames(cmd_data_merge) = cmd_data_merge$study_sample
+cmd_data_merge$study_sample = NULL
+dim(cmd_data_merge)
+# ready
+```
+
+# Helper function
+
+First, let's build a function that does the following:
+- optionally re-balance the dataset using SCUT
+- train a model using 5x CV
+- use the model to predict the class of the held-out dataset
+- calculate AUCs and plot ROC curves
+
+```{r, helper_function, cache=TRUE}
+
+cmd_ml_pipeline <- function(cmd_data = cmd_data_merge,
+                            model = "ranger",
+                            heldout = NULL, # c("HMP", "LLD", "NIE")
+                            balancing = FALSE,
+                            iter = 25,
+                            plot = TRUE){
+
+# Subset to required samples
+cmd_data_train <- cmd_data[!grepl(heldout, rownames(cmd_data)),]
+
+# rebalance
+if(balancing == TRUE){
+set.seed(iter)
+cmd_data_train <- scutr::SCUT(cmd_data_train, "study_condition", undersample = scutr::undersample_kmeans,
+                usamp_opts = list(k=7))
+}
+table(cmd_data_train$study_condition)
+
+cmd_data_train$study_condition = as.factor(cmd_data_train$study_condition)
+
+if(model == "glmnet"){
+cmd_model_train <- caret::train(
+  study_condition ~ .,
+  data = cmd_data_train,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary),
+  tuneGrid = expand.grid(
+  alpha = seq(0, 1, length = 10),
+  lambda = 10^seq(2, -4, length = 100)),
+  metric = "ROC",
+  method = model,
+  preProc = c("center", "scale")
+)
+}else{
+  cmd_model_train <- caret::train(
+  study_condition ~ .,
+  data = cmd_data_train,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary),
+  metric = "ROC",
+  method = model,
+  preProc = c("center", "scale")
+)
+}
+# evaluate on held-out cohort
+predictions <- predict(cmd_model_train, cmd_data[grepl(heldout, rownames(cmd_data)),], type="prob")
+# calculate AUC
+auc_test <- pROC::roc(cmd_data[grepl(heldout, rownames(cmd_data)),]$study_condition,
+                     predictions$IBD)
+if(plot == FALSE){
+  
+  # extract sensitivities and specificities
+  binary_preds = data.frame(
+    pred = ifelse(predictions$control > 0.5, "control", "IBD") %>% as.factor(),
+    obs = cmd_data[grepl(heldout, rownames(cmd_data)),]$study_condition %>% as.factor())
+  
+output = data.frame(
+           auc = auc_test$auc,
+           sens = caret::sensitivity(binary_preds$pred, binary_preds$obs),
+           spec = caret::specificity(binary_preds$pred, binary_preds$obs),
+           dataset = heldout,
+           algorithm = model)
+return(output)
+}
+if(plot == TRUE){
+# convert ROC Curve to Data Frame
+auc_test_df <- data.frame(
+  specificity = (auc_test$specificities),
+  sensitivity = auc_test$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+auc_ci_test <- pROC::ci.se(auc_test, specificities = seq(0, 1, l = 100), boot.n = 2000)
+auc_ci_test = data.frame(auc_ci_test)
+colnames(auc_ci_test) = c("lower", "mean", "upper")
+auc_ci_test$spec = seq(0, 1, l = 100)
+
+# ggplot
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = auc_ci_test, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = auc_test_df, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste(heldout, "\nROC Curve with 95% CI", " (AUC: ", round(auc_test$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+}
+}
+
+```
+
+# Should we rebalance?
+Let's compare the performance of an imbalanced dataset with and without hybrid up + down sampling (using SCUT).
+
+The LifelinesDeep + VichVila datasets contain 1135 controls and 355 IBD samples, a ratio of 3:1. Let's combine it with the HMP data to evaluate the Nielsen dataset.
+
+Here is the ROC when using *unbalanced* data:
+
+```{r, lld_hmp_unbalanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+
+cmd_ml_pipeline(cmd_data_merge, 
+                heldout = "NIE",
+                balancing = FALSE,
+                plot = TRUE)
+
+```
+
+Here is the ROC when using *balanced* data:
+
+```{r, lld_hmp_balanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+
+cmd_ml_pipeline(cmd_data_merge, 
+                heldout = "NIE",
+                balancing = TRUE,
+                plot = TRUE)
+
+```
+
+Evidently, re-balancing achieves a comparable AUC with unremarkable specificities and sensitivities, so it may not be necessary for this dataset.
+
+Now, let's move on and evaluate the LOCO-CV AUCs for the other 2 datasets.
+
+Here is the ROC curve when using the Lifelines + Nielsen datasets to build a model, and the HMP dataset to evaluate:
+
+```{r, nie_lld, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+
+cmd_ml_pipeline(cmd_data_merge, 
+                heldout = "HMP",
+                balancing = TRUE,
+                plot = TRUE)
+```
+
+Here is the ROC curve when using the Nielson + HMP datasets to build a model, and the Lifelines dataset to evaluate:
+
+```{r, nie_hmp, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+
+cmd_ml_pipeline(cmd_data_merge, 
+                heldout = "LLD",
+                balancing = TRUE,
+                plot = TRUE)
+```
+
+These AUCs are less impressive than what were originally published [See Fig2G](https://www.nature.com/articles/s41467-023-42788-0/figures/2)
+
+# Performances
+
+Nielsen was originally 0.780, but is 0.695 here.
+HMP was originally 0.713, but is 0.692 here.
+Lifelines was originally 0.843, but is 0.832 here.
+
+I suspect this is because each of our training datasets are missing 3 additional cohorts! Without this data freely available, we cannot fully replicate the authors' results.
+
+Nonetheless, we can extend this analysis to compare other machine learning models.
+
+## **Extending** the analysis
+
+Let's evaluate the LOCO performances using additional machine learning algorithms.
+
+```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+# select models
+ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
+```
+
+```{r, loop_models, warning=FALSE, message=FALSE, cache=TRUE}
+
+t1 <- Sys.time()
+cmd_model_loop <- do.call(rbind, lapply(1:15, function(iter){
+  do.call(rbind, lapply(ml.models, function(algo){
+    do.call(rbind, lapply(c("LLD", "HMP", "NIE"), function(dataset){
+    
+      # iter = 2
+      # algo = "glmnet"
+      # dataset = "NIE"
+    print(paste(iter, " ", algo, " ", dataset))
+
+       auc.output = cmd_ml_pipeline(cmd_data_merge, 
+                model = algo,
+                iter = iter,
+                heldout = dataset,
+                balancing = TRUE,
+                plot = FALSE)
+    
+    auc.output$iter = iter
+    
+    auc.output
+    
+    }))}))}))
+t2 <- Sys.time()
+t2 - t1 # 11.3 hours
+      
+
+```
+
+```{r, echo=F, results=T}
+
+# plot performance
+ggplot(cmd_model_loop)+
+  geom_boxplot(aes(x = algorithm, y=auc))+
+  geom_point(aes(x =  algorithm, y=auc), size=2.5, color="black")+
+  geom_point(aes(x =  algorithm, y=auc), size=1.5, color="white")+
+  geom_point(aes(x =  algorithm, y=auc, color= algorithm), size=1.5, alpha=0.6)+
+  theme_bw()+theme(legend.position="none",
+                           axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
+  labs(x="Model", y="LOCO AUC")+
+  facet_wrap(~dataset)
+```
+Recall:
+HMP was originally 0.713.
+Lifelines was originally 0.843.
+Nielsen was originally 0.780.
+
+From these results, it appears that Random Forest is the best in 2 / 3 cohorts. Elastic net (glmnet) approaches the published AUC (0.780) performance for the Nielsen dataset.
+
+However, I suspect that the AUCs in the Nielsen (NIE) are being influenced by class imbalances, such that *sensitivities* are high but *specificities* are low (or vice versa).
+
+Let's examine this suspicion by plotting the sensitivities and specificities:
+
+```{r, loop_sens, echo=F, results=T}
+
+# plot performance
+ggplot(cmd_model_loop)+
+  geom_boxplot(aes(x = algorithm, y=sens))+
+  geom_point(aes(x =  algorithm, y=sens), size=2.5, color="black")+
+  geom_point(aes(x =  algorithm, y=sens), size=1.5, color="white")+
+  geom_point(aes(x =  algorithm, y=sens, color= algorithm), size=1.5, alpha=0.6)+
+  theme_bw()+theme(legend.position="none",
+                           axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
+  labs(x="Model", y="LOCO Sensitivity")+
+  facet_wrap(~dataset)
+```
+
+```{r, loop_spec, echo=F, results=T}
+
+# plot performance
+ggplot(cmd_model_loop)+
+  geom_boxplot(aes(x = algorithm, y=spec))+
+  geom_point(aes(x =  algorithm, y=spec), size=2.5, color="black")+
+  geom_point(aes(x =  algorithm, y=spec), size=1.5, color="white")+
+  geom_point(aes(x =  algorithm, y=spec, color= algorithm), size=1.5, alpha=0.6)+
+  theme_bw()+theme(legend.position="none",
+                           axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
+  labs(x="Model", y="LOCO Specificity")+
+  facet_wrap(~dataset)
+```
+
+Here, we see that where selected models had decent AUCs, the specificity was higher and sensitivity was lower (and vice versa).
+
+This illustrates the limitations of using imbalanced datasets and how a single metric (e.g. AUC) can hide key performance attributes (e.g. sensitivity). The study's authors did not evaluate these metrics, instead relying only on the composite AUC score to render conclusions.
+
+# Conclusion
+
+To conclude, I could not validate the performances of all 6 cohorts included in the original study, and my re-analysis yielded lower performances in the available 3 cohorts.
+
+Importantly, AUCs in these datasets were sensitive to class imbalances. Despite using hybrid sampling, sensitivities were quite variable.

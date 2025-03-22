@@ -1,0 +1,66 @@
+---
+title: "Discriminating IBD (RNAseq) "
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("dplyr")
+library("ggplot2")
+
+```
+
+```{r, data_loading, echo=F}
+
+# load normalized count data (from GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE193677)
+# click adj_counts
+sinai_data = read.csv("sinai_validation/GSE193677_norm_counts_TPM_GRCh38.p13_NCBI.tsv", sep="\t")
+dim(sinai_data)
+# 39,376 features by 2,471 samples
+```
+
+```{r, keep_annotated, echo=F}
+# create gene annotations: https://www.gencodegenes.org/human/release_46.html
+annotation1 = read.csv("sinai_validation/gencode.v46.metadata.EntrezGene", sep="", header=F)
+annotation2 = read.csv("sinai_validation/gencode.v46.metadata.HGNC", sep="", header=F)
+# merge
+annotations = merge(annotation1, annotation2, by="V1")
+# keep needed columns
+annotations = annotations[,c("V2.x", "V2.y")]
+colnames(annotations) = c("feature", "name")
+
+# swap in data
+sinai_data$GeneID = annotations[match(sinai_data$GeneID, annotations$feature),]$name
+# remove NA genes
+sinai_data = sinai_data[!is.na(sinai_data$GeneID),]
+rownames(sinai_data) = sinai_data$GeneID
+sinai_data$GeneID = NULL
+dim(sinai_data)
+
+```
+
+
+```{r, mapping, echo=F}
+
+# load mapping data (from: https://www.ncbi.nlm.nih.gov/sra?term=SRP354989)
+# click "Send to: txt"
+sinai_meta = read.csv("sinai_validation/sra_result.csv", sep=",")
+# process metadata:
+sinai_meta$Experiment.Accession = NULL
+sinai_meta = sinai_meta %>%
+  tidyr::separate(col=`Experiment.Title`, into=c("Sample", "other"), sep=": ", remove=T) %>%
+    tidyr::separate(col=other, into=c("Patient", "other"), sep="_Biopsy_", remove=T) %>%
+      tidyr::separate(col=other, into=c("other", "Info"), sep=", ", remove=T) %>%
+        tidyr::separate(col=Info, into=c("Disease", "other"), sep=",", remove=T) %>%
+        mutate(other = gsub("\\;.*", "", other)) %>%
+        tidyr::separate(col=other, into=c("Location", "Status", "tissue"), sep=" ", remove=T) %>%
+          mutate(Disease = gsub(" participants", "", Disease)) %>%
+          mutate(Patient = gsub("MSCCR_reGRID_", "P", Patient)) %>%
+          dplyr::select(Sample, Patient, Disease, Location, Status) %>% distinct()
+
+sinai_meta %>%
+  #subset(Location == "Rectum" & Status == "NonI") %>% 
+  select(Patient, Disease) %>%
+  distinct() %>% 
+  select(Disease) %>% table()
+
+```

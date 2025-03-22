@@ -43,8 +43,12 @@ navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
 
 
 # List files
-files <- c("index.Rmd", "about.Rmd", "mlp_validation/mlp_validation.Rmd",
-           "gevers_validation/gevers_validation.Rmd", "ml_models/ml_figures.Rmd")
+files <- c("index.Rmd", 
+           "about.Rmd", 
+           "mlp_validation/mlp_validation.Rmd",
+           "gevers_validation/gevers_validation.Rmd", 
+           "cmd_validation/cmd_validation.Rmd",
+           "ml_models/ml_figures.Rmd")
 
 # Clean output
 unlink("docs", recursive = TRUE)
