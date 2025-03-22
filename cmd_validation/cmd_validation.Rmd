@@ -122,7 +122,7 @@ First, let's build a function that does the following:
 - use the model to predict the class of the held-out dataset
 - calculate AUCs and plot ROC curves
 
-```{r, helper_function, cache=TRUE}
+```{r, helper_function, echo=F, cache=TRUE}
 
 cmd_ml_pipeline <- function(cmd_data = cmd_data_merge,
                             model = "ranger",
@@ -297,7 +297,7 @@ Let's evaluate the LOCO performances using additional machine learning algorithm
 ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
 ```
 
-```{r, loop_models, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, loop_models, echo=F, results = F, warning=FALSE, message=FALSE, cache=TRUE}
 
 t1 <- Sys.time()
 cmd_model_loop <- do.call(rbind, lapply(1:15, function(iter){
@@ -340,10 +340,11 @@ ggplot(cmd_model_loop)+
   labs(x="Model", y="LOCO AUC")+
   facet_wrap(~dataset)
 ```
-Recall:
-HMP was originally 0.713.
-Lifelines was originally 0.843.
-Nielsen was originally 0.780.
+
+*Recall:*
+*HMP was originally 0.713.*
+*Lifelines was originally 0.843.*
+*Nielsen was originally 0.780.*
 
 From these results, it appears that Random Forest is the best in 2 / 3 cohorts. Elastic net (glmnet) approaches the published AUC (0.780) performance for the Nielsen dataset.
 
