@@ -122,7 +122,7 @@ First, let's build a function that does the following:
 - use the model to predict the class of the held-out dataset
 - calculate AUCs and plot ROC curves
 
-```{r, helper_function, echo=F, cache=TRUE}
+```{r, helper_function, echo=F, warning=FALSE, message=FALSE}
 
 cmd_ml_pipeline <- function(cmd_data = cmd_data_merge,
                             model = "ranger",
@@ -232,23 +232,43 @@ The LifelinesDeep + VichVila datasets contain 1135 controls and 355 IBD samples,
 
 Here is the ROC when using *unbalanced* data:
 
-```{r, lld_hmp_unbalanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, lld_hmp_unbalanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 
-cmd_ml_pipeline(cmd_data_merge, 
+cached = T
+
+if(cached == F){
+
+lld_hmp_unbalanced = cmd_ml_pipeline(cmd_data_merge, 
                 heldout = "NIE",
                 balancing = FALSE,
                 plot = TRUE)
+
+saveRDS(lld_hmp_unbalanced, "../saved/lld_hmp_unbalanced.Rds")
+
+}
+
+lld_hmp_unbalanced = readRDS("../saved/lld_hmp_unbalanced.Rds")
 
 ```
 
 Here is the ROC when using *balanced* data:
 
-```{r, lld_hmp_balanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, lld_hmp_balanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 
-cmd_ml_pipeline(cmd_data_merge, 
+cached = T
+
+if(cached == F){
+
+lld_hmp_balanced = cmd_ml_pipeline(cmd_data_merge, 
                 heldout = "NIE",
                 balancing = TRUE,
                 plot = TRUE)
+
+saveRDS(lld_hmp_balanced, "../saved/lld_hmp_balanced.Rds")
+
+}
+
+lld_hmp_balanced = readRDS("../saved/lld_hmp_balanced.Rds")
 
 ```
 
@@ -258,22 +278,45 @@ Now, let's move on and evaluate the LOCO-CV AUCs for the other 2 datasets.
 
 Here is the ROC curve when using the Lifelines + Nielsen datasets to build a model, and the HMP dataset to evaluate:
 
-```{r, nie_lld, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, nie_lld, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
-cmd_ml_pipeline(cmd_data_merge, 
+cached = T
+
+if(cached == F){
+
+nie_lld = cmd_ml_pipeline(cmd_data_merge, 
                 heldout = "HMP",
                 balancing = TRUE,
                 plot = TRUE)
+  
+saveRDS(nie_lld, "../saved/nie_lld.Rds")
+
+}
+
+nie_lld = readRDS("../saved/nie_lld.Rds")
+
 ```
 
 Here is the ROC curve when using the Nielson + HMP datasets to build a model, and the Lifelines dataset to evaluate:
 
-```{r, nie_hmp, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, nie_hmp, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
-cmd_ml_pipeline(cmd_data_merge, 
+cached = T
+
+if(cached == F){
+  
+nie_hmp = cmd_ml_pipeline(cmd_data_merge, 
                 heldout = "LLD",
                 balancing = TRUE,
                 plot = TRUE)
+
+saveRDS(nie_hmp, "../saved/nie_hmp.Rds")
+
+}
+
+nie_hmp = readRDS("../saved/nie_hmp.Rds")
+
+  
 ```
 
 These AUCs are less impressive than what were originally published [See Fig2G](https://www.nature.com/articles/s41467-023-42788-0/figures/2)
@@ -297,8 +340,12 @@ Let's evaluate the LOCO performances using additional machine learning algorithm
 ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
 ```
 
-```{r, loop_models, echo=F, results = F, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, loop_models, echo=F, results = F, warning=FALSE, message=FALSE}
 
+cached = T
+
+if(cached == F){
+  
 t1 <- Sys.time()
 cmd_model_loop <- do.call(rbind, lapply(1:15, function(iter){
   do.call(rbind, lapply(ml.models, function(algo){
@@ -324,6 +371,11 @@ cmd_model_loop <- do.call(rbind, lapply(1:15, function(iter){
 t2 <- Sys.time()
 t2 - t1 # 11.3 hours
       
+saveRDS(cmd_model_loop, "../saved/cmd_model_loop.Rds")
+
+}
+
+cmd_model_loop = readRDS("../saved/cmd_model_loop.Rds")
 
 ```
 

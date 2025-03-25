@@ -46,7 +46,14 @@ gevers_16S$Sample = NULL
 # by convention, I like samples to be rows
 gevers_16S <- t(gevers_16S) %>% data.frame()
 
-hist(rowSums(gevers_16S), main="Sequencing Depth", xlab="Reads per sample")
+data.frame(depth = rowSums(gevers_16S)) %>%
+  ggplot()+
+  ggridges::geom_density_ridges(aes(x=depth, y=1))+
+  theme_minimal()+
+  labs(title = "Sequencing Depth",
+       x = "Reads per sample",
+       y="Frequency")
+
 ```
 
 Already we can see that there are very few reads per sample. This study was published in 2014, and biopsies were used for this microbiome analysis, which explains the low data coverage.
@@ -291,7 +298,11 @@ Lasso is a reasonable choice to built a predictive algorithm, but others (e.g. r
 ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
 ```
 
-```{r, loop_models, echo = F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, loop_models, echo = F, results=FALSE, warning=FALSE, message=FALSE}
+
+cached = T
+
+if(cached == F){
 
 t1 <- Sys.time()
 gevers_model_loop <- do.call(rbind, lapply(1:15, function(iter){
@@ -345,6 +356,12 @@ data.frame(model = algo,
 t2 <- Sys.time()
 
 t2-t1 # ~ 10 min
+
+saveRDS(gevers_model_loop, "../saved/gevers_model_loop.Rds")
+
+}
+
+gevers_model_loop = readRDS("../saved/gevers_model_loop.Rds")
 
 ```
 

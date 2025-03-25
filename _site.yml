@@ -17,6 +17,8 @@ navbar:
           href: gevers_validation.html
         - text: "Predicting IBD (Microbiome)"
           href: cmd_validation.html
+        - text: "Predicting IBD (RNAseq)"
+          href: sinai_validation.html
     - text: "Machine Learning Models"
       href: ml_figures.html
     - text: "About"

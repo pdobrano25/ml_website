@@ -9,19 +9,36 @@ library("ggplot2")
 
 ```
 
+# **Re-analyzing** the data
+
+[Argmann et al](https://gut.bmj.com/content/72/7/1271.long) performed RNAseq on a mucosal biopsies and blood from a large cohort of IBD and non-IBD controls. Their primary goal was to construct a "molecular inflammation" score that correlates with established measurements of inflammation. For reasons outlined below, I was unable to validate this analysis. 
+
+Their publicly available [dataset](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE193677) enables testing other hypothesis using machine learning.
+
+Below, we process the dataset, and apply machine learning to solve two tasks.
+- **Predict IBD** in inflamed and non-inflamed rectum biopsy samples
+- **Predict IBD in non-inflamed** rectum and ileum biopsy samples using an **ensemble model**.
+
+# Data processing
+Check the total number of features and samples:
+
 ```{r, data_loading, echo=F}
 
 # load normalized count data (from GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE193677)
 # click adj_counts
-sinai_data = read.csv("sinai_validation/GSE193677_norm_counts_TPM_GRCh38.p13_NCBI.tsv", sep="\t")
-dim(sinai_data)
+sinai_data = read.csv("../sinai_validation/GSE193677_norm_counts_TPM_GRCh38.p13_NCBI.tsv", sep="\t")
+
+print(paste(dim(sinai_data)[1], " samples by ", dim(sinai_data)[2], " features", sep=""))
+
 # 39,376 features by 2,471 samples
 ```
 
+After annotating the transcripts, we have this many features remaining:
+
 ```{r, keep_annotated, echo=F}
 # create gene annotations: https://www.gencodegenes.org/human/release_46.html
-annotation1 = read.csv("sinai_validation/gencode.v46.metadata.EntrezGene", sep="", header=F)
-annotation2 = read.csv("sinai_validation/gencode.v46.metadata.HGNC", sep="", header=F)
+annotation1 = read.csv("../sinai_validation/gencode.v46.metadata.EntrezGene", sep="", header=F)
+annotation2 = read.csv("../sinai_validation/gencode.v46.metadata.HGNC", sep="", header=F)
 # merge
 annotations = merge(annotation1, annotation2, by="V1")
 # keep needed columns
@@ -34,8 +51,80 @@ sinai_data$GeneID = annotations[match(sinai_data$GeneID, annotations$feature),]$
 sinai_data = sinai_data[!is.na(sinai_data$GeneID),]
 rownames(sinai_data) = sinai_data$GeneID
 sinai_data$GeneID = NULL
-dim(sinai_data)
 
+print(paste0(ncol(sinai_data), " features remain", sep=""))
+
+
+```
+
+
+## Prevalence filtering 
+
+Next, we'll remove features that are present in 3 samples or fewer.
+
+```{r, prevalence_filter, echo=F}
+
+# convert non0 value to 1
+sinai_data_prev = sinai_data
+sinai_data_prev[sinai_data_prev != 0] = 1
+# remove features with 3 or fewer 1's
+sinai_data = sinai_data[rowSums(sinai_data_prev) > 3,]
+
+# let's also transpose the data
+sinai_data = t(sinai_data) %>% data.frame()
+
+print(paste("Removed: ", sum(rowSums(sinai_data_prev) <= 3), " features"))
+
+
+```
+
+This removed a relatively small number of features.
+
+## Distribution check
+
+Lastly, we'll check the distributions of the data to ensure they are approximately normally distributed prior to visualizing with PCA.
+
+```{r, data_distributions, echo=F, results = T, message=F, warning=F}
+
+# plot distributions of 50 random genes
+set.seed(25)
+sample(sinai_data, size=50, replace=F)%>% as.matrix() %>%
+  reshape2::melt() %>%
+  ggplot(aes(x=value, y = 1))+
+  ggridges::geom_density_ridges(aes(group = Var2), color="black", fill="white", alpha=0.2)+
+  theme_minimal()+theme(legend.position="none")+
+  labs(x="Adjusted Count", y="Frequency")
+
+```
+
+These data appear severely [right-skewed](https://en.wikipedia.org/wiki/Skewness). 
+
+## Log-transformation
+
+Let's see what happens with a log-transform (with pseudocount).
+
+```{r, data_distributions_post_log, echo=F, results = T, message=F, warning=F}
+
+sinai_pseudo = min(sinai_data[sinai_data!=0])/2
+
+sinai_data_log = log(sinai_data + sinai_pseudo, base=2)
+# plot distributions of 50 random genes
+set.seed(25)
+sample(sinai_data_log, size=50, replace=F)%>% as.matrix() %>%
+  reshape2::melt() %>%
+  ggplot(aes(x=value, y = 1))+
+  ggridges::geom_density_ridges(aes(group = Var2), color="black", fill="white", alpha=0.2)+
+  theme_minimal()+theme(legend.position="none")+
+  labs(x="Log-transformed Adjusted Count", y="Frequency")
+
+```
+
+These generally look significantly better than before.
+
+We have finished pre-processed our data. Here are what the first 4 rows and columns look like:
+
+```{r, sense_of_data, echo=F}
+sinai_data_log[1:4, 1:4]
 ```
 
 
@@ -43,7 +132,7 @@ dim(sinai_data)
 
 # load mapping data (from: https://www.ncbi.nlm.nih.gov/sra?term=SRP354989)
 # click "Send to: txt"
-sinai_meta = read.csv("sinai_validation/sra_result.csv", sep=",")
+sinai_meta = read.csv("../sinai_validation/sra_result.csv", sep=",")
 # process metadata:
 sinai_meta$Experiment.Accession = NULL
 sinai_meta = sinai_meta %>%
@@ -64,3 +153,749 @@ sinai_meta %>%
   select(Disease) %>% table()
 
 ```
+
+## Principal Component Analysis 
+
+Now let's visualize (with PCA) what how the samples relate to each other after dimension reduction.
+
+```{r, all_data_pca, echo = F, results = T, warning = F}
+
+cached = T
+
+if(cached == F){
+  
+# construct PCA
+sinai_pca <- prcomp((sinai_data_log), center = TRUE, scale = TRUE)
+
+# extract results
+sinai_pca_df <- as.data.frame(sinai_pca$x)  # PCA scores
+sinai_pca_df$Sample <- rownames(sinai_pca$x)  # Add sample names for visualization
+# add meta
+sinai_pca_df = merge(sinai_pca_df,
+                   sinai_meta, by= "Sample")
+
+# Variance explained by each principal component
+var_exp <- round((sinai_pca$sdev^2 / sum(sinai_pca$sdev^2)) * 100, 2)
+
+# let's reorder the location by biogeography
+sinai_pca_df$Location = factor(sinai_pca_df$Location,
+                                    levels = c("Ileum", "Cecum", "LeftColon", "Transverse", "RightColon","Sigmoid","Rectum"))
+
+saveRDS(sinai_pca_df, "../saved/sinai_pca_df.Rds")
+saveRDS(var_exp, "../saved/var_exp_sinai.Rds")
+
+}
+
+sinai_pca_df <- readRDS("../saved/sinai_pca_df.Rds")
+var_exp <- readRDS("../saved/var_exp_sinai.Rds")
+
+ggplot(sinai_pca_df,
+       aes(x=PC1, y=PC2))+
+  geom_point(shape=21, color="black",
+             aes(fill = Disease, alpha = Status))+
+  theme_bw()+
+  facet_wrap(~Location)+
+  labs(x=paste("PC1: ", round(var_exp[1], digits=2), "%", sep=""), 
+       y=paste("PC2: ", round(var_exp[2], digits=2), "%", sep=""))
+
+```
+
+The separation by location doesn't look great. Nonetheless, we're going to subset the data to one compartment to simplify the problem. Which compartment has the greatest number of samples with good representation among conditions?
+
+```{r, compare_compartments, echo = F, results = T, plot = F, warning=F}
+
+table(sinai_meta[,c("Location", "Status", "Disease")]) %>% data.frame() %>%
+  group_by(Location) %>%
+  mutate(sum.location = sum(Freq)) %>%
+  group_by(Location, Disease) %>%
+    mutate(sum.location.disease = sum(Freq)) %>%
+  group_by(Location, Disease, Status) %>%
+    mutate(sum.location.disease.status = sum(Freq)) %>% data.frame() %>%
+  arrange(-sum.location) %>%
+  head()
+
+
+```
+
+Here, we can see that the rectum has the most samples overall, with high representation per diseae and status.
+
+It also makes biological sense. The rectum may be inflamed in CD or UC, but the ileum is rarely inflamed in UC.
+
+## Subset to rectum
+
+Let's subset the data to the rectum and apply PCA again, and take only one sample per patient.
+
+```{r, subset_to_rectum, echo = F, plot = T, warning=F}
+
+cached = T
+
+if(cached ==F){
+  
+# subset meta to Rectum
+sinai_rectum_meta = subset(sinai_meta, Location == "Rectum")
+# check pseudoreplicates
+sinai_rectum_meta$Patient %>% table() %>% range()
+# remove pseudoreplicates
+sinai_rectum_meta = sinai_rectum_meta %>%
+  group_by(Patient) %>%
+  slice_head(n = 1)
+# check pseudoreplicates
+sinai_rectum_meta$Patient %>% table() %>% range()
+
+# subset data to Rectum
+sinai_rectum = sinai_data_log[rownames(sinai_data_log) %in% sinai_rectum_meta$Sample,]
+sinai_rectum
+
+# apply prevalence filter again
+sinai_rectum_prev = (2^sinai_rectum) - sinai_pseudo
+# need to round down because of floating integer
+sinai_rectum_prev[sinai_rectum_prev == min(sinai_rectum_prev)] = 0
+# return to prev filter operation
+sinai_rectum_prev[sinai_rectum_prev != 0] = 1
+# remove features with 3 or fewer 1's
+sinai_rectum = sinai_rectum[,colSums(sinai_rectum_prev) > 3]
+dim(sinai_rectum)
+
+# construct PCA
+sinai_rectum_pca <- prcomp((sinai_rectum), center = TRUE, scale = TRUE)
+
+# extract results
+sinai_rectum_pca_df <- as.data.frame(sinai_rectum_pca$x)  # PCA scores
+sinai_rectum_pca_df$Sample <- rownames(sinai_rectum_pca$x)  # Add sample names for visualization
+# add meta
+sinai_rectum_pca_df = merge(sinai_rectum_pca_df,
+                   sinai_rectum_meta, by= "Sample")
+
+# Variance explained by each principal component
+var_exp_rectum <- round((sinai_rectum_pca$sdev^2 / sum(sinai_rectum_pca$sdev^2)) * 100, 2)
+
+saveRDS(sinai_rectum_pca_df, "../saved/sinai_rectum_pca_df.Rds")
+saveRDS(var_exp_rectum, "../saved/var_exp_rectum.Rds")
+
+}
+
+sinai_rectum_pca_df <- readRDS("../saved/sinai_rectum_pca_df.Rds")
+var_exp_rectum <- readRDS("../saved/var_exp_rectum.Rds")
+
+library("patchwork")
+ggplot(sinai_rectum_pca_df,
+       aes(x=PC1, y=PC2))+
+  geom_point(data=subset(sinai_rectum_pca_df, Status == "I"), shape=21, color="black",
+             aes(fill = as.factor(1), shape = Status))+
+    geom_point(data=subset(sinai_rectum_pca_df, Status == "NonI"), shape=23, color="black",
+             aes(fill = as.factor(2), shape = Status))+
+  theme_minimal()+theme(legend.position="none")+
+  labs(x=paste("PC1: ", round(var_exp_rectum[1], digits=2), "%", sep=""), 
+       y=paste("PC2: ", round(var_exp_rectum[2], digits=2), "%", sep=""))+
+  # add distributions along axes
+  ggplot(sinai_rectum_pca_df, 
+         aes(x=PC2, y=1))+
+  geom_violin(aes(x=Status, y=PC2, fill=Status), color="black",
+              draw_quantiles = 0.5)+
+  theme_minimal()+theme(legend.position="none")+
+  labs(x="Status", y="PC2")+  
+  ggplot(sinai_rectum_pca_df, 
+         aes(x=PC1, y=1))+
+  coord_flip()+
+  geom_violin(aes(x=Status, y=PC1, fill=Status), color="black",
+              draw_quantiles = 0.5)+
+  theme_minimal()+theme(legend.position="none")+
+  labs(x="Status", y="PC1")+ plot_spacer()+
+  patchwork::plot_layout(widths=c(4,1), heights=c(3,1))
+
+```
+
+PCA of rectum biopsies shows good separation based on whether the tissue was inflamed or not.
+
+Now we can start asking questions about whether the transcriptome can diagnosing inflammation or discriminate disease.
+
+I personally think predicting inflammation is not a useful application of machine learning (bordering on tautological), because a clinician will be able to determine whether a tissue is (endoscopically) inflammed while sampling it. Nonetheless, it poses a typical task for  machine learning.
+
+## Molecular Inflammation Score
+
+Before launching into machine learning, I wanted to comment on what the authors advanced in their study.
+
+They used linear mixed effects regression to identify genes *upregulated* in inflamed samples, followed by *GSVA* to calculate a single score per sample, called the *Molecular Inflammation Score*.
+
+In their model, they controlled for batch, RNA integrity number, rRNA rate, exonic rate, age, gender, and genetic principal components. However, these are data that are not readily available from GEO.
+
+So, we will move on to applying machine learning instead.
+
+# **Predicting IBD**
+
+For the sake of running this analysis locally, we're going to reduce the number of features.
+
+## Variance filter
+
+**Feature selection** is an important step in pre-processing data prior to training a model. We have a decently-sized dataset, but I wouldn't want to spend any samples performing supervised feature selection (e.g. running t-tests to extract features we suspect to be associated with the outcome). Instead, we'll apply unsupervised feature selection by removing low variance features.
+
+Let's use caret's build in "nearZeroVar" function. From the [documentation](https://www.rdocumentation.org/packages/caret/versions/6.0-92/topics/nearZeroVar), this function removes features with:
+*one unique value (i.e. are zero variance predictors) or predictors that are have both of the following characteristics: they have very few unique values relative to the number of samples and the ratio of the frequency of the most common value to the frequency of the second most common value is large.*
+
+```{r, variance_filter, echo=F}
+
+# first, initialize new dataframe
+sinai_rectum_ibd = sinai_rectum %>% data.frame()
+
+# identify nearzerovar
+nearzervar_features = caret::nearZeroVar(sinai_rectum_ibd, freqCut = 10/1, uniqueCut = 20)
+# length(nearzervar_features)
+
+# remove nearzerovar
+sinai_rectum_ibd_filt = sinai_rectum_ibd[,-nearzervar_features]
+
+print(paste("Removed: ", length(nearzervar_features), " features (", round((1 - ncol(sinai_rectum_ibd_filt) / ncol(sinai_rectum_ibd)) *100, digits=2), "%)", sep=""))
+
+```
+
+Variance filtering removed 2,846 features (~11.6%).
+
+## Correlated features filter
+
+We can also apply the "findCorrelation" function to eliminate features that are highly correlated (i.e. carry redundant information), and retain a single feature among them to represent the rest. Again, we'll apply an aggressive threshold (Pearson correlation > 0.70).
+
+```{r, correlation_filter, echo=F}
+
+cached = T
+
+if(cached == F){
+  
+# calculate correlations
+cor_matrix <- cor(sinai_rectum_ibd_filt)
+
+# identify highly correlated features
+high_cor <- caret::findCorrelation(cor_matrix, cutoff = 0.7)
+#length(high_cor)
+saveRDS(high_cor, "../saved/high_cor.Rds")
+
+}
+
+high_cor = readRDS("../saved/high_cor.Rds")
+# remove correlated features
+
+sinai_rectum_ibd_filt_cor = sinai_rectum_ibd_filt[,-high_cor]
+
+print(paste("Removed: ", length(high_cor), " features (", round((1 - ncol(sinai_rectum_ibd_filt_cor) / ncol(sinai_rectum_ibd_filt)) *100, digits=2), "%)", sep=""))
+
+```
+
+Correlation filtering removed an additional 13,659 features (~63%).
+
+## Train model
+
+Now, we'll use all rectum biopsies to predict Control from IBD (CD or UC)
+
+We will first use glmnet to establish a proof-of-principle that this prediction can be made. Because we have a good sample size, we'll rebalance the dataset during CV by randomly downsampling to the smallest class.
+
+```{r, build_model, echo=F, warning=F, message=F}
+
+sinai_rectum_ibd_filt_ibd = sinai_rectum_ibd_filt_cor
+
+# add outcome
+sinai_rectum_ibd_filt_ibd$Sample = rownames(sinai_rectum_ibd_filt_ibd)
+sinai_rectum_ibd_filt_ibd = merge(sinai_rectum_ibd_filt_ibd,
+                              sinai_rectum_meta[,c("Sample", "Disease")],
+                              by="Sample")
+rownames(sinai_rectum_ibd_filt_ibd) = sinai_rectum_ibd_filt_ibd$Sample
+sinai_rectum_ibd_filt_ibd$Sample = NULL
+
+# make UC and CD into IBD
+sinai_rectum_ibd_filt_ibd$Disease = ifelse(sinai_rectum_ibd_filt_ibd$Disease == "Control", "Control", "IBD")
+
+# check balance
+table(sinai_rectum_ibd_filt_ibd$Disease)
+# 221 to 660
+
+cached = T
+
+if(cached == F){
+  
+# build 5x CV model
+sinai_ibd_model_train <- caret::train(
+  Disease ~ .,
+  data = sinai_rectum_ibd_filt_ibd,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary,
+                                  sampling = "down"),
+  metric = "ROC",
+  method = "glmnet",
+  preProc = c("center", "scale")
+)
+
+# let's plot the ROC curve
+
+# select the final model
+sinai_ibd_model_train_best = subset(sinai_ibd_model_train$pred, alpha == sinai_ibd_model_train$bestTune$alpha & lambda == sinai_ibd_model_train$bestTune$lambda)
+
+# build ROC curve
+roc_curve_all <- pROC::roc(sinai_ibd_model_train_best$obs, sinai_ibd_model_train_best$IBD, levels = levels(sinai_ibd_model_train_best$obs))
+# convert ROC Curve to Data Frame
+roc_df <- data.frame(
+  specificity = (roc_curve_all$specificities),
+  sensitivity = roc_curve_all$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+roc_curve_ci <- pROC::ci.se(roc_curve_all, specificities = seq(0, 1, l = 100), boot.n = 2000)
+roc_curve_ci = data.frame(roc_curve_ci)
+colnames(roc_curve_ci) = c("lower", "mean", "upper")
+roc_curve_ci$spec = seq(0, 1, l = 100)
+
+saveRDS(sinai_ibd_model_train_best, "../saved/sinai_ibd_model_train_best.Rds")
+saveRDS(roc_df, "../saved/roc_df.Rds")
+saveRDS(roc_curve_ci, "../saved/roc_curve_ci.Rds")
+
+}
+
+sinai_ibd_model_train_best = readRDS("../saved/sinai_ibd_model_train_best.Rds")
+roc_df = readRDS("../saved/roc_df.Rds")
+roc_curve_ci = readRDS("../saved/roc_curve_ci.Rds")
+
+
+# plot Using ggplot2
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = roc_curve_ci, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = roc_df, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("ROC Curve with 95% CI", " (AUC: ", round(roc_curve_all$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+```
+
+Even after aggressive feature selection and downsampling, elastic net can predict IBD from controls with an AUC of 0.906. Quite an impressive looking ROC, albeit for internal validation.
+
+## Questioning the utility
+
+I stated before that I don't consider this a very useful problem to solve. The clinician can make a determination of IBD or not well enough. In fact, I suspect that the high AUC is leveraging the fact that an inflammation (visible on endoscopy) is represented by a highly discriminative transcriptomic signature alone, and this model fails in discriminating IBD in non-inflamed samples. Let's explore this suspicion.
+
+```{r, model_isnt_useful, echo=F, results=T, warning=F, message=F}
+
+# extract mean predictions and link to inflammation status
+sinai_ibd_model_mean = sinai_ibd_model_train_best %>%
+  group_by(rowIndex) %>%
+  mutate(mean.prob = mean(IBD)) %>%
+  dplyr::select(rowIndex, mean.prob) %>% distinct() %>% data.frame() %>%
+  arrange(rowIndex) %>%
+  mutate(Sample = rownames(sinai_rectum_ibd_filt_ibd))
+
+sinai_ibd_model_mean = merge(sinai_ibd_model_mean,
+                             sinai_rectum_meta, by="Sample")
+
+sinai_ibd_model_mean$Disease = factor(sinai_ibd_model_mean$Disease, levels=c("Control", "CD", "UC"))
+sinai_ibd_model_mean$Status = factor(sinai_ibd_model_mean$Status, levels=c("NonI", "I"))
+
+ggplot(sinai_ibd_model_mean,
+       aes(x=Disease, y=mean.prob))+
+  geom_violin(draw_quantiles= 0.5) +
+  geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
+  theme_minimal()+
+  facet_wrap(~Status, scales="free_x")+
+  labs(x="Disease", y="Mean Probability of IBD")
+
+```
+
+Here, it is evident that the model is most discriminative if the tissue is simply inflamed. There does appear to be a signal in the non-inflamed UC rectum, but less so for CD.
+
+# **Predicting IBD with non-inflamed transcriptomes**
+
+This raises a hypothesis that I have not seen tested before:
+
+Could an **ensemble** of 2 machine learning models (one trained on the rectum and one trained on the ileum) diagnose IBD from controls *in the absence of inflammation* ?
+
+```{r, preparing_ensemble_data, echo=F, results=T, warning=F, message=F}
+
+# first, we need to subset the RECTUM and ILEUM data to non-inflamed samples
+
+sinai_joint_meta = subset(sinai_meta, Location %in% c("Rectum", "Ileum") & 
+                            Status == "NonI") %>%
+  group_by(Patient, Location) %>%
+  slice_head(n = 1)
+# table(sinai_joint_meta[,c("Disease","Location")])
+
+# we're going to use matched samples, which will shrink our dataset considerably
+matching_samples = sinai_joint_meta[,c("Patient")] %>% table() %>% data.frame() %>% subset(Freq>1)
+# apply filter
+sinai_joint_meta = subset(sinai_joint_meta, Patient %in% matching_samples$Patient)
+# table(sinai_joint_meta[,c("Disease", "Location")])
+
+# now reformat feature tables to be structured identically
+
+sinai_joint_r = sinai_data_log[rownames(sinai_data_log) %in% subset(sinai_joint_meta, Location == "Rectum")$Sample,]
+# dim(sinai_joint_r)
+
+sinai_joint_i = sinai_data_log[rownames(sinai_data_log) %in% subset(sinai_joint_meta, Location == "Ileum")$Sample,]
+# dim(sinai_joint_i)
+
+# replace rownames with patient number
+rownames(sinai_joint_r) = sinai_joint_meta[match(rownames(sinai_joint_r), sinai_joint_meta$Sample),]$Patient
+
+rownames(sinai_joint_i) = sinai_joint_meta[match(rownames(sinai_joint_i), sinai_joint_meta$Sample),]$Patient
+
+# filter features per dataset
+# rectum
+nearzervar_features_r = caret::nearZeroVar(sinai_joint_r, freqCut = 10/1, uniqueCut = 20)
+sinai_joint_r_filt = sinai_joint_r[,-nearzervar_features_r]
+cor_matrix_r <- cor(sinai_joint_r_filt)
+high_cor_r <- caret::findCorrelation(cor_matrix_r, cutoff = 0.7)
+sinai_joint_r_filt_cor = sinai_joint_r_filt[,-high_cor_r]
+# ileum
+nearzervar_features_i = caret::nearZeroVar(sinai_joint_i, freqCut = 10/1, uniqueCut = 20)
+sinai_joint_i_filt = sinai_joint_i[,-nearzervar_features_i]
+cor_matrix_i <- cor(sinai_joint_i_filt)
+high_cor_i <- caret::findCorrelation(cor_matrix_i, cutoff = 0.7)
+sinai_joint_i_filt_cor = sinai_joint_i_filt[,-high_cor_i]
+
+print(paste0("Rectum features: ", ncol(sinai_joint_r_filt_cor), ". Ileum features: ", ncol(sinai_joint_i_filt_cor), "."))
+
+```
+
+To review, we've limited the dataset patients with matching ileum and rectum samples. We've removed pseudoreplicates, such that each patient is only represented once. Lastly, we've filtered out low variance and correlated (R > 0.70) features.
+
+Now we can continue on to building an ensemble. We'll build separate classifiers: one for predicting IBD in ileum samples, and one for predicting IBD in rectum samples.
+
+Of note: we will need a consistent CV scheme that both models will use. Because we are also downsampling, we will pull out the CV scheme from the first model and apply it to the second (and ensemble).
+
+```{r, ensemble_rectum, echo=F, results=T, warning=F, message=F}
+
+cached = T
+
+if(cached == F){
+  
+# initialize data
+sinai_r = sinai_joint_r_filt_cor
+
+# add outcome
+sinai_r$Patient = rownames(sinai_r)
+sinai_r = merge(sinai_r,
+                subset(sinai_joint_meta, Location == "Rectum")[,c("Patient", "Disease")],
+                by="Patient")
+rownames(sinai_r) = sinai_r$Pateint
+sinai_r$Patient = NULL
+
+# make UC and CD into IBD
+sinai_r$Disease = ifelse(sinai_r$Disease == "Control", "Control", "IBD") %>% as.factor()
+
+# check balance
+table(sinai_r$Disease)
+# 111 to 150
+
+# check dim
+dim(sinai_r)
+
+# build 5x CV model
+set.seed(25)
+sinai_r_model_train <- caret::train(
+  Disease ~ .,
+  data = sinai_r,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary,
+                                  sampling = "down"),
+  metric = "ROC",
+  method = "glmnet",
+  preProc = c("center", "scale")
+)
+
+# save CV scheme for next model
+ensemble_cv_scheme = sinai_r_model_train$control$index
+
+# select the final model
+sinai_r_model_train_best = subset(sinai_r_model_train$pred, alpha == sinai_r_model_train$bestTune$alpha & lambda == sinai_r_model_train$bestTune$lambda)
+
+# build ROC curve
+roc_curve_all_r <- pROC::roc(sinai_r_model_train_best$obs, sinai_r_model_train_best$IBD, levels = levels(sinai_r_model_train_best$obs))
+# convert ROC Curve to Data Frame
+roc_df_r <- data.frame(
+  specificity = (roc_curve_all_r$specificities),
+  sensitivity = roc_curve_all_r$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+roc_curve_ci_r <- pROC::ci.se(roc_curve_all_r, specificities = seq(0, 1, l = 100), boot.n = 2000)
+roc_curve_ci_r = data.frame(roc_curve_ci_r)
+colnames(roc_curve_ci_r) = c("lower", "mean", "upper")
+roc_curve_ci_r$spec = seq(0, 1, l = 100)
+
+saveRDS(sinai_r_model_train_best, "../saved/sinai_r_model_train_best.Rds")
+saveRDS(roc_df_r, "../saved/roc_df_r.Rds")
+saveRDS(roc_curve_ci_r, "../saved/roc_curve_ci_r.Rds")
+
+}
+
+sinai_r_model_train_best = readRDS("../saved/sinai_r_model_train_best.Rds")
+roc_df_r = readRDS("../saved/roc_df_r.Rds")
+roc_curve_ci_r = readRDS("../saved/roc_curve_ci_r.Rds")
+
+# plot Using ggplot2
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = roc_curve_ci_r, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = roc_df_r, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Rectum (Non-inflamed)\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all_r$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+
+```
+```{r, is_r_model_useful, echo=F, results=T, warning=F, message=F}
+
+# extract mean predictions and link to inflammation status
+sinai_r_model_mean = sinai_r_model_train_best %>%
+  group_by(rowIndex) %>%
+  mutate(mean.prob = mean(IBD)) %>%
+  dplyr::select(rowIndex, mean.prob) %>% distinct() %>% data.frame() %>%
+  arrange(rowIndex) %>%
+  mutate(Patient = rownames(sinai_joint_r))
+
+sinai_r_model_mean = merge(sinai_r_model_mean,
+                             subset(sinai_joint_meta, Location == "Rectum"), by="Patient")
+
+sinai_r_model_mean$Disease = factor(sinai_r_model_mean$Disease, levels=c("Control", "CD", "UC"))
+sinai_r_model_mean$Status = factor(sinai_r_model_mean$Status, levels=c("NonI", "I"))
+
+ggplot(sinai_r_model_mean,
+       aes(x=Disease, y=mean.prob))+
+  geom_violin(draw_quantiles= 0.5) +
+  geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
+  theme_minimal()+
+  labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Rectum Model")
+
+```
+
+This model is doing what we want it to: predict CD or UC from non-inflamed rectal tissues. 
+
+Since inflammation in rectal tissue is not specific to CD or UC, we'll build a similar classifier using Ileum samples.
+
+```{r, ensemble_ileum, echo=F, results=T, warning=F, message=F}
+
+cached = T
+
+if(cached == F){
+  
+# initialize data
+sinai_i = sinai_joint_i_filt_cor
+
+# add outcome
+sinai_i$Patient = rownames(sinai_i)
+sinai_i = merge(sinai_i,
+                subset(sinai_joint_meta, Location == "Ileum")[,c("Patient", "Disease")],
+                by="Patient")
+rownames(sinai_i) = sinai_i$Pateint
+sinai_i$Patient = NULL
+
+# make UC and CD into IBD
+sinai_i$Disease = ifelse(sinai_i$Disease == "Control", "Control", "IBD") %>% as.factor()
+
+# check balance
+table(sinai_i$Disease)
+# 111 to 150
+
+# check dim
+dim(sinai_i)
+
+# build 5x CV model
+set.seed(25)
+sinai_i_model_train <- caret::train(
+  Disease ~ .,
+  data = sinai_i,
+  trControl = caret::trainControl(method="cv", 
+                                  index = ensemble_cv_scheme,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary,
+                                  sampling = "down"),
+  metric = "ROC",
+  method = "glmnet",
+  preProc = c("center", "scale")
+)
+
+# select the final model
+sinai_i_model_train_best = subset(sinai_i_model_train$pred, alpha == sinai_i_model_train$bestTune$alpha & lambda == sinai_i_model_train$bestTune$lambda)
+
+# build ROC curve
+roc_curve_all_i <- pROC::roc(sinai_i_model_train_best$obs, sinai_i_model_train_best$IBD, levels = levels(sinai_i_model_train_best$obs))
+# convert ROC Curve to Data Frame
+roc_df_i <- data.frame(
+  specificity = (roc_curve_all_i$specificities),
+  sensitivity = roc_curve_all_i$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+roc_curve_ci_i <- pROC::ci.se(roc_curve_all_i, specificities = seq(0, 1, l = 100), boot.n = 2000)
+roc_curve_ci_i = data.frame(roc_curve_ci_i)
+colnames(roc_curve_ci_i) = c("lower", "mean", "upper")
+roc_curve_ci_i$spec = seq(0, 1, l = 100)
+
+
+saveRDS(sinai_i_model_train_best, "../saved/sinai_i_model_train_best.Rds")
+saveRDS(roc_df_i, "../saved/roc_df_i.Rds")
+saveRDS(roc_curve_ci_i, "../saved/roc_curve_ci_i.Rds")
+
+}
+
+sinai_i_model_train_best = readRDS("../saved/sinai_i_model_train_best.Rds")
+roc_df_i = readRDS("../saved/roc_df_i.Rds")
+roc_curve_ci_i = readRDS("../saved/roc_curve_ci_i.Rds")
+
+# plot Using ggplot2
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = roc_curve_ci_i, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = roc_df_i, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Ileum (Non-inflamed)\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all_i$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+
+```
+
+
+```{r, is_i_model_useful, echo=F, results=T, warning=F, message=F}
+
+# extract mean predictions and link to inflammation status
+sinai_i_model_mean = sinai_i_model_train_best %>%
+  group_by(rowIndex) %>%
+  mutate(mean.prob = mean(IBD)) %>%
+  dplyr::select(rowIndex, mean.prob) %>% distinct() %>% data.frame() %>%
+  arrange(rowIndex) %>%
+  mutate(Patient = rownames(sinai_joint_i))
+
+sinai_i_model_mean = merge(sinai_i_model_mean,
+                             subset(sinai_joint_meta, Location == "Rectum"), by="Patient")
+
+sinai_i_model_mean$Disease = factor(sinai_i_model_mean$Disease, levels=c("Control", "CD", "UC"))
+sinai_i_model_mean$Status = factor(sinai_i_model_mean$Status, levels=c("NonI", "I"))
+
+ggplot(sinai_i_model_mean,
+       aes(x=Disease, y=mean.prob))+
+  geom_violin(draw_quantiles= 0.5) +
+  geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
+  theme_minimal()+
+  labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Ileum Model")
+
+```
+
+This model appears to perform better at predicting CD, which makes sense because inflammation in ileal tissue is generally specific to CD.
+
+Now let's build an ensemble model using a caret extension.
+
+```{r, ensemble, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+
+cached = T
+
+if(cached == F){
+  
+set.seed(25)
+sinai_ensemble_model <- caretEnsemble::caretEnsemble(
+  list(sinai_r_model_train,
+       sinai_i_model_train),
+  trControl = trainControl(
+    method = "cv", 
+    savePredictions = TRUE,
+    classProbs = TRUE,
+    summaryFunction = caret::twoClassSummary,
+    sampling = "down"),
+  metric = "ROC")
+
+# select the final model
+sinai_ensemble_model_train_best = sinai_ensemble_model$ens_model
+
+# build ROC curve
+roc_curve_all_ensemble <- pROC::roc(sinai_ensemble_model_train_best$pred$obs, sinai_ensemble_model_train_best$pred$IBD, levels = levels(sinai_ensemble_model_train_best$pred$obs))
+# convert ROC Curve to Data Frame
+roc_df_ensemble <- data.frame(
+  specificity = (roc_curve_all_ensemble$specificities),
+  sensitivity = roc_curve_all_ensemble$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+roc_curve_ci_ensemble <- pROC::ci.se(roc_curve_all_ensemble, specificities = seq(0, 1, l = 100), boot.n = 2000)
+roc_curve_ci_ensemble = data.frame(roc_curve_ci_ensemble)
+colnames(roc_curve_ci_ensemble) = c("lower", "mean", "upper")
+roc_curve_ci_ensemble$spec = seq(0, 1, l = 100)
+
+saveRDS(sinai_ensemble_model_train_best, "../saved/sinai_ensemble_model_train_best.Rds")
+saveRDS(roc_df_ensemble, "../saved/roc_df_ensemble.Rds")
+saveRDS(roc_curve_ci_ensemble, "../saved/roc_curve_ci_ensemble.Rds")
+
+}
+
+sinai_ensemble_model_train_best = readRDS("../saved/sinai_ensemble_model_train_best.Rds")
+roc_df_ensemble = readRDS("../saved/roc_df_ensemble.Rds")
+roc_curve_ci_ensemble = readRDS("../saved/roc_curve_ci_ensemble.Rds")
+
+# plot Using ggplot2
+ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = roc_curve_ci_ensemble, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = roc_df_ensemble, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Ensemble (Non-inflamed)\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all_ensemble$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+
+```
+
+Does this classifier work more equally for CD and UC?
+
+```{r, is_ensemble_useful, echo=F, results=T, warning=F, message=F}
+
+# extract mean predictions and link to inflammation status
+sinai_ensemble_model_mean = sinai_ensemble_model_train_best$pred %>%
+  group_by(rowIndex) %>%
+  mutate(mean.prob = mean(IBD)) %>%
+  dplyr::select(rowIndex, mean.prob) %>% distinct() %>% data.frame() %>%
+  arrange(rowIndex) %>%
+  mutate(Patient = rownames(sinai_joint_i))
+
+sinai_ensemble_model_mean = merge(sinai_ensemble_model_mean,
+                             subset(sinai_joint_meta, Location == "Rectum"), by="Patient")
+
+sinai_ensemble_model_mean$Disease = factor(sinai_ensemble_model_mean$Disease, levels=c("Control", "CD", "UC"))
+sinai_ensemble_model_mean$Status = factor(sinai_ensemble_model_mean$Status, levels=c("NonI", "I"))
+
+ggplot(sinai_ensemble_model_mean,
+       aes(x=Disease, y=mean.prob))+
+  geom_violin(draw_quantiles= 0.5) +
+  geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
+  theme_minimal()+
+  labs(x="Disease", y="Mean Probability of IBD", title="Non-inflamed Ensemble Model")
+
+```
+
+We see the model is near equally sensitive for CD and UC. In other words, it's doing what we wanted this sort of ensemble to do.
+
+## Conclusion
+
+There are several reasons why the transcriptome of *non-inflamed* intestinal biopsies could be different between IBD and non-IBD controls. 
+
+For instance, IBD is treated with immunomodulatory drugs, which can leave a transcriptomic footprint in the tissue, inflamed or not.
+
+Or, longstanding IBD in remission may have a persistent transcriptomic signature (including what the authors call "molecular inflammation"), despite already having been diagnosed and treated in the past.
+
+Therefore, there is limited utility in this particular model without having included new-onset, treatment-naive patients.
+
+
+

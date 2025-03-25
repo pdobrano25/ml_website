@@ -4,7 +4,7 @@ title: "Microbial Load Predictor"
 ---
 
 ```{r setup_mlp, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 library("dplyr")
 library("ggplot2")
 ```
@@ -54,9 +54,14 @@ Here is the distribution of *Faecalibacterium prausnitzii*, a highly abundant an
 ```{r, training_data_comments_1}
 
 # check normality
-hist(nishijima.training[,1], 
-     main=colnames(nishijima.training)[1],
-     xlab = paste(colnames(nishijima.training)[1], "Log Abundance", sep=" "))
+data.frame(faecali = nishijima.training[,1]) %>%
+  ggplot()+
+  ggridges::geom_density_ridges(aes(x=faecali, y=1))+
+  theme_minimal()+
+  labs(title = colnames(nishijima.training)[1],
+       x = paste(colnames(nishijima.training)[1], "Log Abundance", sep=" "),
+       y="Frequency")
+    
 
 ```
 
@@ -67,7 +72,13 @@ Here is a distribution of the minimum values of all taxa:
 ```{r, training_data_comments_2}
 
 # was the same value imputed for 0?
-apply(nishijima.training, 1, min) %>% hist(xlab = "Minimum value", main="Pseudocount distribution")
+data.frame(pseudo = apply(nishijima.training, 1, min) ) %>%
+  ggplot()+
+  ggridges::geom_density_ridges(aes(x=pseudo, y=1))+
+  theme_minimal()+
+  labs(title = "Pseudocount distribution",
+       x = "Minimum value",
+       y="Frequency")
 
 ```
 
@@ -142,7 +153,16 @@ nishijima.model.predictions = nishijima.model$pred %>%
 Nishijima uses Pearson correlation coefficients to evaluate the predictive performance of their model. This should be appropriate because we're working on a regression problem to predict a continuous variable. The outcome is log-transformed microbial load, which is approximately normally distributed.
 
 ```{r, internal_validation_2}
-hist(nishijima.model.predictions$obs, main="Microbial Load Distrubtion", xlab="Measured Microbial Load")
+
+data.frame(obs = nishijima.model.predictions$obs) %>%
+  ggplot()+
+  ggridges::geom_density_ridges(aes(x=obs, y=1))+
+  theme_minimal()+
+  labs(title = "Microbial Load Distrubtion",
+       x = "Measured Microbial Load",
+       y="Frequency")
+    
+
 ```
 
 Let's see what the Pearson correlation coefficient is between the true (measured) values and the predicted (model output) values:
