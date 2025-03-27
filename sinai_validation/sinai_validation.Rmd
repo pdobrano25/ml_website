@@ -581,7 +581,7 @@ Now we can continue on to building an ensemble. We'll build separate classifiers
 
 Of note: we will need a consistent CV scheme that both models will use. Because we are also downsampling, we will pull out the CV scheme from the first model and apply it to the second (and ensemble).
 
-```{r, ensemble_rectum, echo=F, results=T, warning=F, message=F}
+```{r, ensemble_rectum, echo=F, results=F, plot=T, warning=F, message=F}
 
 cached = T
 
@@ -673,7 +673,7 @@ ggplot() +
   theme_bw()
 
 ```
-```{r, is_r_model_useful, echo=F, results=T, warning=F, message=F}
+```{r, is_r_model_useful, echo=F, results=F, plot=T, warning=F, message=F}
 
 # extract mean predictions and link to inflammation status
 sinai_r_model_mean = sinai_r_model_train_best %>%
@@ -707,7 +707,7 @@ This model is doing what we want it to: predict CD or UC from non-inflamed recta
 
 Since inflammation in rectal tissue is not specific to CD or UC, we'll build a similar classifier using Ileum samples.
 
-```{r, ensemble_ileum, echo=F, results=T, warning=F, message=F}
+```{r, ensemble_ileum, echo=F, results=F, plot=T, warning=F, message=F}
 
 cached = T
 
@@ -798,7 +798,7 @@ ggplot() +
 ```
 
 
-```{r, is_i_model_useful, echo=F, results=T, warning=F, message=F}
+```{r, is_i_model_useful, echo=F, results=F, plot=T, warning=F, message=F}
 
 # extract mean predictions and link to inflammation status
 sinai_i_model_mean = sinai_i_model_train_best %>%
@@ -831,7 +831,7 @@ This model appears to perform better at predicting CD, which makes sense because
 
 Now let's build an ensemble model using a caret extension.
 
-```{r, ensemble, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+```{r, ensemble, echo=F, results=F, plot=T, warning=FALSE, message=FALSE}
 
 cached = T
 
@@ -897,7 +897,7 @@ ggplot() +
 
 Does this classifier work more equally for CD and UC?
 
-```{r, is_ensemble_useful, echo=F, results=T, warning=F, message=F}
+```{r, is_ensemble_useful, echo=F, results=F, plot=T, warning=F, message=F}
 
 # extract mean predictions and link to inflammation status
 sinai_ensemble_model_mean = sinai_ensemble_model_train_best$pred %>%
