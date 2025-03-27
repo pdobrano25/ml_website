@@ -3,7 +3,7 @@ title: "Discriminating IBD (RNAseq) "
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library("dplyr")
 library("ggplot2")
 
@@ -13,14 +13,16 @@ library("ggplot2")
 
 [Argmann et al](https://gut.bmj.com/content/72/7/1271.long) performed RNAseq on a mucosal biopsies and blood from a large cohort of IBD and non-IBD controls. Their primary goal was to construct a "molecular inflammation" score that correlates with established measurements of inflammation. For reasons outlined below, I was unable to validate this analysis. 
 
-Their publicly available [dataset](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE193677) enables testing other hypothesis using machine learning.
+Their publicly available [dataset](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE193677) enables testing other hypotheses using machine learning.
 
 Below, we process the dataset, and apply machine learning to solve two tasks.
+
 - **Predict IBD** in inflamed and non-inflamed rectum biopsy samples
+
 - **Predict IBD in non-inflamed** rectum and ileum biopsy samples using an **ensemble model**.
 
 # Data processing
-Check the total number of features and samples:
+Check the total number of samples and features:
 
 ```{r, data_loading, echo=F}
 
@@ -33,7 +35,7 @@ print(paste(dim(sinai_data)[1], " samples by ", dim(sinai_data)[2], " features",
 # 39,376 features by 2,471 samples
 ```
 
-After annotating the transcripts, we have this many features remaining:
+Next, we will assign gene names to transcripts. Not all transcripts can be annotated, so we will remove these. This is not necessarily the optimal decision for the purpose of building the most accurate classifier, but it helps render interpretability.
 
 ```{r, keep_annotated, echo=F}
 # create gene annotations: https://www.gencodegenes.org/human/release_46.html
@@ -227,9 +229,6 @@ Let's subset the data to the rectum and apply PCA again, and take only one sampl
 
 ```{r, subset_to_rectum, echo = F, plot = T, warning=F}
 
-cached = T
-
-if(cached ==F){
   
 # subset meta to Rectum
 sinai_rectum_meta = subset(sinai_meta, Location == "Rectum")
@@ -245,6 +244,10 @@ sinai_rectum_meta$Patient %>% table() %>% range()
 # subset data to Rectum
 sinai_rectum = sinai_data_log[rownames(sinai_data_log) %in% sinai_rectum_meta$Sample,]
 sinai_rectum
+
+cached = T
+
+if(cached ==F){
 
 # apply prevalence filter again
 sinai_rectum_prev = (2^sinai_rectum) - sinai_pseudo
@@ -539,6 +542,9 @@ rownames(sinai_joint_r) = sinai_joint_meta[match(rownames(sinai_joint_r), sinai_
 
 rownames(sinai_joint_i) = sinai_joint_meta[match(rownames(sinai_joint_i), sinai_joint_meta$Sample),]$Patient
 
+cache = T
+
+if(cache == F){
 # filter features per dataset
 # rectum
 nearzervar_features_r = caret::nearZeroVar(sinai_joint_r, freqCut = 10/1, uniqueCut = 20)
@@ -552,6 +558,14 @@ sinai_joint_i_filt = sinai_joint_i[,-nearzervar_features_i]
 cor_matrix_i <- cor(sinai_joint_i_filt)
 high_cor_i <- caret::findCorrelation(cor_matrix_i, cutoff = 0.7)
 sinai_joint_i_filt_cor = sinai_joint_i_filt[,-high_cor_i]
+
+saveRDS(sinai_joint_r_filt_cor, "../saved/sinai_joint_r_filt_cor.Rds")
+saveRDS(sinai_joint_i_filt_cor, "../saved/sinai_joint_i_filt_cor.Rds")
+
+}
+
+sinai_joint_r_filt_cor = saveRDS("../saved/sinai_joint_r_filt_cor.Rds")
+sinai_joint_i_filt_cor = saveRDS("../saved/sinai_joint_i_filt_cor.Rds")
 
 print(paste0("Rectum features: ", ncol(sinai_joint_r_filt_cor), ". Ileum features: ", ncol(sinai_joint_i_filt_cor), "."))
 
@@ -635,6 +649,10 @@ saveRDS(roc_curve_ci_r, "../saved/roc_curve_ci_r.Rds")
 sinai_r_model_train_best = readRDS("../saved/sinai_r_model_train_best.Rds")
 roc_df_r = readRDS("../saved/roc_df_r.Rds")
 roc_curve_ci_r = readRDS("../saved/roc_curve_ci_r.Rds")
+
+# recalculate AUC (because I didn't save it the first time!)
+roc_curve_all_r <- pROC::roc(sinai_r_model_train_best$obs, sinai_r_model_train_best$IBD, levels = levels(sinai_r_model_train_best$obs))
+
 
 # plot Using ggplot2
 ggplot() +  
@@ -751,6 +769,9 @@ sinai_i_model_train_best = readRDS("../saved/sinai_i_model_train_best.Rds")
 roc_df_i = readRDS("../saved/roc_df_i.Rds")
 roc_curve_ci_i = readRDS("../saved/roc_curve_ci_i.Rds")
 
+# build ROC curve again (because I didn't save it the first time!)
+roc_curve_all_i <- pROC::roc(sinai_i_model_train_best$obs, sinai_i_model_train_best$IBD, levels = levels(sinai_i_model_train_best$obs))
+
 # plot Using ggplot2
 ggplot() +  
   # 95% Confidence Interval as a shaded region
@@ -841,6 +862,9 @@ saveRDS(roc_curve_ci_ensemble, "../saved/roc_curve_ci_ensemble.Rds")
 sinai_ensemble_model_train_best = readRDS("../saved/sinai_ensemble_model_train_best.Rds")
 roc_df_ensemble = readRDS("../saved/roc_df_ensemble.Rds")
 roc_curve_ci_ensemble = readRDS("../saved/roc_curve_ci_ensemble.Rds")
+
+# build ROC curve again (because I didn't save it the first time!)
+roc_curve_all_ensemble <- pROC::roc(sinai_ensemble_model_train_best$pred$obs, sinai_ensemble_model_train_best$pred$IBD, levels = levels(sinai_ensemble_model_train_best$pred$obs))
 
 # plot Using ggplot2
 ggplot() +  

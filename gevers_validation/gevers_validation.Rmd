@@ -3,7 +3,7 @@ title: "Predicting Crohn's Disease (Microbiome)"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library("dplyr")
 library("ggplot2")
 
@@ -133,7 +133,7 @@ Let's follow the author's methods and build a lasso without balancing groups dur
 
 # first, we will construct 5 folds
 set.seed(25)
-cv_folds <- createFolds(gevers_16S_cd$CD, k = 5, returnTrain = TRUE)
+cv_folds <- caret::createFolds(gevers_16S_cd$CD, k = 5, returnTrain = TRUE)
 
 # Stratified sampling
 
@@ -231,7 +231,7 @@ gevers_16S_cd$CD <- as.factor(gevers_16S_cd$CD)
 
 # first, we will construct 5 folds
 set.seed(25)
-cv_folds <- createFolds(gevers_16S_cd$CD, k = 5, returnTrain = TRUE)
+cv_folds <- caret::createFolds(gevers_16S_cd$CD, k = 5, returnTrain = TRUE)
 
 # Stratified sampling
 

@@ -4,7 +4,7 @@ title: "Microbial Load Predictor"
 ---
 
 ```{r setup_mlp, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library("dplyr")
 library("ggplot2")
 ```
