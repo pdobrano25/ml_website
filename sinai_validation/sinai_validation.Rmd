@@ -201,7 +201,7 @@ ggplot(sinai_pca_df,
   facet_wrap(~Location)+
   labs(x=paste("PC1: ", round(var_exp[1], digits=2), "%", sep=""), 
        y=paste("PC2: ", round(var_exp[2], digits=2), "%", sep=""),
-       fill = "Inflamed")
+       fill = "Status")
 
 ```
 
@@ -517,7 +517,7 @@ This raises a hypothesis that I have not seen tested before:
 
 Could an **ensemble** of 2 machine learning models (one trained on the rectum and one trained on the ileum) diagnose IBD from controls *in the absence of inflammation* ?
 
-```{r, preparing_ensemble_data, echo=F, results=T, warning=F, message=F}
+```{r, preparing_ensemble_data, echo=F, results=F, plot=T, warning=F, message=F}
 
 # first, we need to subset the RECTUM and ILEUM data to non-inflamed samples
 
