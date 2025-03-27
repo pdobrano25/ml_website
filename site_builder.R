@@ -58,6 +58,13 @@ unlink("docs", recursive = TRUE)
 for (f in files) {
   output_dir <- file.path("docs", dirname(f))
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  # Copy logo.png to the docs/images directory
+  logo_source <- "logo-black.png"
+  logo_dest <- file.path("docs", "logo-black.png")
+  dir.create(dirname(logo_dest), recursive = TRUE, showWarnings = FALSE)
+  file.copy(logo_source, logo_dest, overwrite = TRUE)
+  
   # Define output options
   output_options <- list(
     theme = "cosmo",

@@ -25,4 +25,7 @@ Peter is studying a novel personalized microbiome-modulating therapy for pediatr
 
 For inquiries, comments, or requests for collaboration, please email pdobr062@uottawa.ca.
 
-Follow (@PDobrano)[https://x.com/PDobrano] on X.
+<a href="https://x.com/PDobrano" target="_blank">
+  <iframe src="docs/logo-black.png" style="width: 30px; height: 30px; border: none; vertical-align: middle;"></iframe>
+  @PDobrano
+</a>

@@ -193,12 +193,15 @@ var_exp <- readRDS("../saved/var_exp_sinai.Rds")
 
 ggplot(sinai_pca_df,
        aes(x=PC1, y=PC2))+
-  geom_point(shape=21, color="black",
-             aes(fill = Disease, alpha = Status))+
+  geom_point(data=subset(sinai_pca_df, Status == "I"), shape=21, color="black",
+             aes(fill = as.factor("Inflamed"), shape = Status))+
+    geom_point(data=subset(sinai_pca_df, Status == "NonI"), shape=23, color="black",
+             aes(fill = as.factor("Non-inflamed"), shape = Status))+
   theme_bw()+
   facet_wrap(~Location)+
   labs(x=paste("PC1: ", round(var_exp[1], digits=2), "%", sep=""), 
-       y=paste("PC2: ", round(var_exp[2], digits=2), "%", sep=""))
+       y=paste("PC2: ", round(var_exp[2], digits=2), "%", sep=""),
+       fill = "Inflamed")
 
 ```
 
@@ -227,7 +230,7 @@ It also makes biological sense. The rectum may be inflamed in CD or UC, but the 
 
 Let's subset the data to the rectum and apply PCA again, and take only one sample per patient.
 
-```{r, subset_to_rectum, echo = F, plot = T, warning=F}
+```{r, subset_to_rectum, echo = F, results = F, plot = T, warning=F}
 
   
 # subset meta to Rectum
@@ -243,7 +246,6 @@ sinai_rectum_meta$Patient %>% table() %>% range()
 
 # subset data to Rectum
 sinai_rectum = sinai_data_log[rownames(sinai_data_log) %in% sinai_rectum_meta$Sample,]
-sinai_rectum
 
 cached = T
 
@@ -493,13 +495,15 @@ sinai_ibd_model_mean = merge(sinai_ibd_model_mean,
                              sinai_rectum_meta, by="Sample")
 
 sinai_ibd_model_mean$Disease = factor(sinai_ibd_model_mean$Disease, levels=c("Control", "CD", "UC"))
-sinai_ibd_model_mean$Status = factor(sinai_ibd_model_mean$Status, levels=c("NonI", "I"))
+sinai_ibd_model_mean$Status = factor(ifelse(sinai_ibd_model_mean$Status == "NonI", "Non-inflamed", "Inflamed"), levels=c("Non-inflamed", "Inflamed"))
+sinai_ibd_model_mean$Status_color = factor(sinai_ibd_model_mean$Status, levels=c("Inflamed", "Non-inflamed"))
 
 ggplot(sinai_ibd_model_mean,
        aes(x=Disease, y=mean.prob))+
   geom_violin(draw_quantiles= 0.5) +
+  ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Status_color), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+
+  theme_minimal()+theme(legend.position="none")+
   facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD")
 
@@ -564,8 +568,8 @@ saveRDS(sinai_joint_i_filt_cor, "../saved/sinai_joint_i_filt_cor.Rds")
 
 }
 
-sinai_joint_r_filt_cor = saveRDS("../saved/sinai_joint_r_filt_cor.Rds")
-sinai_joint_i_filt_cor = saveRDS("../saved/sinai_joint_i_filt_cor.Rds")
+sinai_joint_r_filt_cor = readRDS("../saved/sinai_joint_r_filt_cor.Rds")
+sinai_joint_i_filt_cor = readRDS("../saved/sinai_joint_i_filt_cor.Rds")
 
 print(paste0("Rectum features: ", ncol(sinai_joint_r_filt_cor), ". Ileum features: ", ncol(sinai_joint_i_filt_cor), "."))
 
@@ -685,12 +689,17 @@ sinai_r_model_mean = merge(sinai_r_model_mean,
 sinai_r_model_mean$Disease = factor(sinai_r_model_mean$Disease, levels=c("Control", "CD", "UC"))
 sinai_r_model_mean$Status = factor(sinai_r_model_mean$Status, levels=c("NonI", "I"))
 
+sinai_r_model_mean$Status = factor(ifelse(sinai_r_model_mean$Status == "NonI", "Non-inflamed", "Inflamed"), levels=c("Non-inflamed", "Inflamed"))
+
 ggplot(sinai_r_model_mean,
        aes(x=Disease, y=mean.prob))+
   geom_violin(draw_quantiles= 0.5) +
+  ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+
+  theme_minimal()+theme(legend.position="none")+
+  facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Rectum Model")
+
 
 ```
 
@@ -805,11 +814,15 @@ sinai_i_model_mean = merge(sinai_i_model_mean,
 sinai_i_model_mean$Disease = factor(sinai_i_model_mean$Disease, levels=c("Control", "CD", "UC"))
 sinai_i_model_mean$Status = factor(sinai_i_model_mean$Status, levels=c("NonI", "I"))
 
+sinai_i_model_mean$Status = factor(ifelse(sinai_i_model_mean$Status == "NonI", "Non-inflamed", "Inflamed"), levels=c("Non-inflamed", "Inflamed"))
+
 ggplot(sinai_i_model_mean,
        aes(x=Disease, y=mean.prob))+
   geom_violin(draw_quantiles= 0.5) +
+  ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+
+  theme_minimal()+theme(legend.position="none")+
+  facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Ileum Model")
 
 ```
@@ -900,12 +913,16 @@ sinai_ensemble_model_mean = merge(sinai_ensemble_model_mean,
 sinai_ensemble_model_mean$Disease = factor(sinai_ensemble_model_mean$Disease, levels=c("Control", "CD", "UC"))
 sinai_ensemble_model_mean$Status = factor(sinai_ensemble_model_mean$Status, levels=c("NonI", "I"))
 
+sinai_ensemble_model_mean$Status = factor(ifelse(sinai_ensemble_model_mean$Status == "NonI", "Non-inflamed", "Inflamed"), levels=c("Non-inflamed", "Inflamed"))
+
 ggplot(sinai_ensemble_model_mean,
        aes(x=Disease, y=mean.prob))+
   geom_violin(draw_quantiles= 0.5) +
+  ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+
-  labs(x="Disease", y="Mean Probability of IBD", title="Non-inflamed Ensemble Model")
+  theme_minimal()+theme(legend.position="none")+
+  facet_wrap(~Status, scales="free_x")+
+  labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Ensemble Model")
 
 ```
 
