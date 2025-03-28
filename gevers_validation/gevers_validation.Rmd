@@ -206,7 +206,7 @@ I noted above that the authors did not state they log transformed their data. Gi
 
 Let's re-run our analysis without log-transforming:
 
-```{r, no_log, echo=F, results = T, warning=FALSE, message=FALSE}
+```{r, no_log, echo=F, results = F,plot=T, warning=FALSE, message=FALSE}
 
 # Note: code is copied from above
 

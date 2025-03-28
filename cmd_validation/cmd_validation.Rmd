@@ -232,7 +232,7 @@ The LifelinesDeep + VichVila datasets contain 1135 controls and 355 IBD samples,
 
 Here is the ROC when using *unbalanced* data:
 
-```{r, lld_hmp_unbalanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, lld_hmp_unbalanced, results=F,plot=T, echo=FALSE, warning=FALSE, message=FALSE}
 
 cached = T
 
@@ -253,7 +253,7 @@ lld_hmp_unbalanced = readRDS("../saved/lld_hmp_unbalanced.Rds")
 
 Here is the ROC when using *balanced* data:
 
-```{r, lld_hmp_balanced, results=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, lld_hmp_balanced, results=F, plot=T, echo=FALSE, warning=FALSE, message=FALSE}
 
 cached = T
 

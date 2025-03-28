@@ -32,7 +32,6 @@ sinai_data = read.csv("../sinai_validation/GSE193677_norm_counts_TPM_GRCh38.p13_
 
 print(paste(dim(sinai_data)[1], " samples by ", dim(sinai_data)[2], " features", sep=""))
 
-# 39,376 features by 2,471 samples
 ```
 
 Next, we will assign gene names to transcripts. Not all transcripts can be annotated, so we will remove these. This is not necessarily the optimal decision for the purpose of building the most accurate classifier, but it helps render interpretability.
@@ -105,7 +104,7 @@ These data appear severely [right-skewed](https://en.wikipedia.org/wiki/Skewness
 
 Let's see what happens with a log-transform (with pseudocount).
 
-```{r, data_distributions_post_log, echo=F, results = T, message=F, warning=F}
+```{r, data_distributions_post_log, echo=F, results = F, plot=T, message=F, warning=F}
 
 sinai_pseudo = min(sinai_data[sinai_data!=0])/2
 
@@ -353,8 +352,6 @@ print(paste("Removed: ", length(nearzervar_features), " features (", round((1 - 
 
 ```
 
-Variance filtering removed 2,846 features (~11.6%).
-
 ## Correlated features filter
 
 We can also apply the "findCorrelation" function to eliminate features that are highly correlated (i.e. carry redundant information), and retain a single feature among them to represent the rest. Again, we'll apply an aggressive threshold (Pearson correlation > 0.70).
@@ -459,6 +456,8 @@ sinai_ibd_model_train_best = readRDS("../saved/sinai_ibd_model_train_best.Rds")
 roc_df = readRDS("../saved/roc_df.Rds")
 roc_curve_ci = readRDS("../saved/roc_curve_ci.Rds")
 
+# recalculate AUC
+roc_curve_all <- pROC::roc(sinai_ibd_model_train_best$obs, sinai_ibd_model_train_best$IBD, levels = levels(sinai_ibd_model_train_best$obs))
 
 # plot Using ggplot2
 ggplot() +  
@@ -479,7 +478,7 @@ Even after aggressive feature selection and downsampling, elastic net can predic
 
 ## Questioning the utility
 
-I stated before that I don't consider this a very useful problem to solve. The clinician can make a determination of IBD or not well enough. In fact, I suspect that the high AUC is leveraging the fact that an inflammation (visible on endoscopy) is represented by a highly discriminative transcriptomic signature alone, and this model fails in discriminating IBD in non-inflamed samples. Let's explore this suspicion.
+I stated before that I don't consider this a very useful problem to solve. The clinician can make a determination of IBD or not well enough. In fact, I suspect that the high AUC is leveraging the fact that inflammation (visible on endoscopy) is represented by a highly discriminative transcriptomic signature alone, and this model fails in discriminating IBD in non-inflamed samples. Let's explore this suspicion.
 
 ```{r, model_isnt_useful, echo=F, results=T, warning=F, message=F}
 
