@@ -337,7 +337,7 @@ Let's evaluate the LOCO performances using additional machine learning algorithm
 
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
-ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
+ml.models = c("gbm","glmnet","ranger","svmLinear","svmRadial","xgbTree")
 ```
 
 ```{r, loop_models, echo=F, results = F, warning=FALSE, message=FALSE}

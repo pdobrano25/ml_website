@@ -51,7 +51,7 @@ If we glance at the training data, we see they log-transformed the data, which i
 
 Here is the distribution of *Faecalibacterium prausnitzii*, a highly abundant and prevalent gut microbe:
 
-```{r, training_data_comments_1}
+```{r, training_data_comments_1, echo=F, results=F, plot=T, message=F, warning=F}
 
 # check normality
 data.frame(faecali = nishijima.training[,1]) %>%
@@ -69,7 +69,7 @@ In order to log-transform, 0 values had to be replaced with a small *pseudocount
 
 Here is a distribution of the minimum values of all taxa:
 
-```{r, training_data_comments_2}
+```{r, training_data_comments_2, echo=F, results=F, plot=T, message=F, warning=F}
 
 # was the same value imputed for 0?
 data.frame(pseudo = apply(nishijima.training, 1, min) ) %>%
@@ -129,7 +129,7 @@ We will compare the performance using **Internal Validation** (performed during 
 
 Here, we will extract the best model from Nishijima's saved model object:
 
-```{r, internal_validation_1}
+```{r, internal_validation_1, echo=F, results=F, plot=T, message=F, warning=F}
 
 # extract Internal Validation predictions - from caret's "final model"
 nishijima.model.predictions = nishijima.model$pred %>%
@@ -152,7 +152,7 @@ nishijima.model.predictions = nishijima.model$pred %>%
 
 Nishijima uses Pearson correlation coefficients to evaluate the predictive performance of their model. This should be appropriate because we're working on a regression problem to predict a continuous variable. The outcome is log-transformed microbial load, which is approximately normally distributed.
 
-```{r, internal_validation_2}
+```{r, internal_validation_2, echo=F, results=F, plot=T, message=F, warning=F}
 
 data.frame(obs = nishijima.model.predictions$obs) %>%
   ggplot()+
@@ -167,7 +167,7 @@ data.frame(obs = nishijima.model.predictions$obs) %>%
 
 Let's see what the Pearson correlation coefficient is between the true (measured) values and the predicted (model output) values:
 
-```{r, internal_validation_3}
+```{r, internal_validation_3, echo=F, results=F, plot=T, message=F, warning=F}
 
 # Here's a scatter plot with embedded correlation
 
@@ -427,7 +427,7 @@ linear models like **elastic net**, **support vector machines**, tree-based mode
 
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
-ml.models = c("gbm","glmnet","lm", "ranger","svmLinear","svmRadial","xgbTree")
+ml.models = c("gbm","glmnet","lm","ranger","svmLinear","svmRadial","xgbTree")
 ```
 
 We're also going to reduce the number of CV from 10 to 5, to save on time, but repeat each model evaluation 15 times to see how variable the CV process is.

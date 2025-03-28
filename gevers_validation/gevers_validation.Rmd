@@ -295,7 +295,7 @@ Lasso is a reasonable choice to built a predictive algorithm, but others (e.g. r
 
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
-ml.models = c("gbm","glmnet", "ranger","svmLinear","svmRadial","xgbTree")
+ml.models = c("gbm","glmnet","ranger","svmLinear","svmRadial","xgbTree")
 ```
 
 ```{r, loop_models, echo = F, results=FALSE, warning=FALSE, message=FALSE}
@@ -378,7 +378,7 @@ ggplot(gevers_model_loop)+
 # 
 ```
 
-Surprisingly, the assumption does not hold; the median lasso peformance is superior to all other models.
+The assumption holds: the median random forest performance is superior to all other models, including lasso.
 
 
 ## Conclusions
