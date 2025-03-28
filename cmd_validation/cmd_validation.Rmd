@@ -117,9 +117,13 @@ dim(cmd_data_merge)
 # Helper function
 
 First, let's build a function that does the following:
+
 - optionally re-balance the dataset using SCUT
+
 - train a model using 5x CV
+
 - use the model to predict the class of the held-out dataset
+
 - calculate AUCs and plot ROC curves
 
 ```{r, helper_function, echo=F, warning=FALSE, message=FALSE}
@@ -232,7 +236,7 @@ The LifelinesDeep + VichVila datasets contain 1135 controls and 355 IBD samples,
 
 Here is the ROC when using *unbalanced* data:
 
-```{r, lld_hmp_unbalanced, results=F,plot=T, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, lld_hmp_unbalanced, results=F, plot=T, echo=FALSE, warning=FALSE, message=FALSE}
 
 cached = T
 
@@ -248,6 +252,8 @@ saveRDS(lld_hmp_unbalanced, "../saved/lld_hmp_unbalanced.Rds")
 }
 
 lld_hmp_unbalanced = readRDS("../saved/lld_hmp_unbalanced.Rds")
+
+lld_hmp_unbalanced
 
 ```
 
@@ -269,6 +275,8 @@ saveRDS(lld_hmp_balanced, "../saved/lld_hmp_balanced.Rds")
 }
 
 lld_hmp_balanced = readRDS("../saved/lld_hmp_balanced.Rds")
+
+lld_hmp_balanced
 
 ```
 
@@ -295,6 +303,8 @@ saveRDS(nie_lld, "../saved/nie_lld.Rds")
 
 nie_lld = readRDS("../saved/nie_lld.Rds")
 
+nie_lld
+
 ```
 
 Here is the ROC curve when using the Nielson + HMP datasets to build a model, and the Lifelines dataset to evaluate:
@@ -316,6 +326,7 @@ saveRDS(nie_hmp, "../saved/nie_hmp.Rds")
 
 nie_hmp = readRDS("../saved/nie_hmp.Rds")
 
+nie_hmp
   
 ```
 
@@ -376,6 +387,8 @@ saveRDS(cmd_model_loop, "../saved/cmd_model_loop.Rds")
 }
 
 cmd_model_loop = readRDS("../saved/cmd_model_loop.Rds")
+
+cmd_model_loop
 
 ```
 
