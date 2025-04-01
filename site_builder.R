@@ -49,6 +49,7 @@ files <- c("index.Rmd",
            "gevers_validation/gevers_validation.Rmd", 
            "cmd_validation/cmd_validation.Rmd",
            "sinai_validation/sinai_validation.Rmd",
+           "metaaml_validation/metaaml_validation.Rmd",   
            "ml_models/ml_figures.Rmd")
 
 # Clean output

@@ -1,0 +1,807 @@
+---
+title: "Predicting Disease (Microbiome"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library("dplyr")
+library("ggplot2")
+
+cache = T
+
+```
+
+# **Validating** the analysis
+
+[The Segata Lab](http://segatalab.cibio.unitn.it/tools/metaml/index.html) published a [study](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977) in 2016 employing machine learning on microbiomes to predict various diseases, including liver cirrhosis, colorectal cancer, IBD, obesity, and type 2 diabetes.
+
+The stool microbiome [dataset](https://github.com/SegataLab/metaml/tree/master/data) is publicly available.
+
+Below, we validate their findings and extend the analysis to employ **Multi-Class Classification** with **downsampling**.
+
+## Loading data
+
+Let's load the data and see what type of samples are included:
+
+```{r load_data, echo=F, results=T, plot=T, warning=F, message=F}
+
+# load stool microbiome data
+aml_data = read.csv("../metaaml_validation/abundance_stoolsubset.txt", sep="\t")
+# standardize sample name
+colnames(aml_data) <- c("dataset_name", aml_data[1,-1])
+
+# extract metadata from this file
+aml_meta = aml_data[1:210,] %>% t() %>% data.frame()
+# make first row column names
+colnames(aml_meta) = aml_meta[1,]
+# and delete this row
+aml_meta = aml_meta[-1,]
+# clean up to necessary columns
+aml_meta = aml_meta[,c("sampleID", "subjectID", "disease", "pubmedid")]
+# keep distinct
+aml_meta = distinct(aml_meta)
+# check stats
+aml_meta[,c("disease")] %>% table()
+
+
+```
+
+This is a little messy, so let's clean up the samples into clean categories.
+
+## Metadata processing
+
+```{r metadata_processing, echo=F, results=T, plot=T, warning=F, message=F}
+
+# subset to confirmed categories
+
+aml_meta = subset(aml_meta, disease %in% c("cirrhosis","ibd_crohn_disease","ibd_ulcerative_colitis", "cancer", "n", "obesity", "t2d"))
+
+# rename diseases
+aml_meta$disease = ifelse(aml_meta$disease == "n", "none",
+                          ifelse(aml_meta$disease == "ibd_crohn_disease", "IBD",
+                                 ifelse(aml_meta$disease == "ibd_ulcerative_colitis",
+                                        "IBD",
+                                 aml_meta$disease)))
+
+aml_meta[,c("disease")] %>% table()
+
+
+```
+
+A small note, but it's unclear which categories of samples contributed to the 981 control samples listed in the original study. I only see 944. As we see later, this slight decrease becomes amplified on a pursuit towards high quality data.
+
+Let's also check if there are sample duplicates:
+
+
+```{r metadata_duplicates_1, echo=F, results=T, plot=T, warning=F, message=F}
+
+# check if patient duplicates
+
+aml_meta$subjectID %>% table() %>% data.frame() %>%
+  ggplot()+
+  ggridges::geom_density_ridges(aes(x=Freq, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(title = "Sample Replicates",
+       x = "Number of Samples per Subject",
+       y="Frequency")
+
+```
+
+Uh oh. That's a notable number of pseudoreplicates. Which condition do they belong to?
+
+```{r metadata_duplicates_2, echo=F, results=T, plot=T, warning=F, message=F}
+
+aml_meta[,c("subjectID","disease")] %>% table() %>% data.frame() %>%
+  group_by(disease) %>%
+  summarize(sum(Freq>1))
+
+```
+
+Many of the controls were replicates, which we can spare. However, 66 / 173 of the Crohn's disease samples were replicates, which we'd obviously rather not spare. But we need to if we want to apply machine learning without blatantly overfitting. So, we'll take only the first entry per subject.
+
+Here are the final tallies of samples after removing pseudoreplicates.
+
+```{r metadata_duplicates_3, echo=F, results=T, plot=T, warning=F, message=F}
+
+aml_meta = aml_meta %>%
+  group_by(subjectID) %>%
+  slice_max(sampleID, n=1) %>% data.frame()
+aml_meta[,c("disease")] %>% table()
+
+```
+
+Alright. Now let's check the ratios of control to cases per study among studies of disease.
+
+```{r metadata_duplicates_4, echo=F, results=T, plot=T, warning=F, message=F}
+
+# aml_meta[,c("pubmedid", "disease")] %>% table()
+
+
+# let's rename the studyID here
+aml_meta$studyID = ifelse(aml_meta$pubmedid == "20203603", "IBD",
+                          ifelse(aml_meta$pubmedid == "24997787", "IBD",
+                          ifelse(aml_meta$pubmedid == "23023125", "T2D",
+                                 ifelse(aml_meta$pubmedid == "23719380", "WT2D",
+                                        ifelse(aml_meta$pubmedid == "23985870", "obesity",
+                                               ifelse(aml_meta$pubmedid == "25079328", "cirrhosis",
+                                                      ifelse(aml_meta$pubmedid == "25432777", "cancer",
+                                                             aml_meta$pubmedid)))))))
+
+aml_meta[,c("studyID", "disease")] %>% table()
+
+
+```
+Every study of disease also included approximately as many, or more control samples as case samples.
+
+Now let's process the sequencing data.
+
+## Data processing
+
+Let's extract out the species data, and check out the data distributions.
+
+```{r data_processing_1, echo=F, results=T, plot=T, warning=F, message=F}
+
+# subset to taxa data
+aml_taxa = aml_data[-c(1:210),] %>% t() %>% data.frame()
+
+# make first row colnames, and remove first row
+colnames(aml_taxa) = aml_taxa[1,]
+aml_taxa = aml_taxa[-1,]
+
+# subset to only s__ annotations
+aml_taxa = aml_taxa[,grepl("s__", colnames(aml_taxa))]
+# remove strains
+aml_taxa = aml_taxa[,!grepl("t__", colnames(aml_taxa))]
+# clean names
+colnames(aml_taxa) = gsub(".*s__", "", colnames(aml_taxa))
+
+# make values numeric
+aml_taxa = data.matrix(aml_taxa)
+
+# 826 species
+
+print(paste(ncol(aml_taxa), "species remain.", sep=" "))
+
+if(cache == F){
+# check distributions
+aml_taxa_dist_plot = ggplot(reshape2::melt(as.matrix(aml_taxa)))+
+  ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(x="Count", y="Frequency")
+saveRDS(aml_taxa_dist_plot, "../saved/aml_taxa_dist_plot.Rds")
+}
+
+aml_taxa_dist_plot <- readRDS("../saved/aml_taxa_dist_plot.Rds")
+
+aml_taxa_dist_plot
+
+```
+
+We should convert to relative abundance, log transform, and add a pseudocount.
+
+```{r data_processing_2, echo=F, results=T, plot=T, warning=F, message=F}
+
+# pseudocount (min count was 1)
+aml_taxa_pseudo = min(aml_taxa[aml_taxa!=0])/2
+
+# add pseudocount
+aml_taxa = aml_taxa+aml_taxa_pseudo
+
+# convert to relative abundance
+aml_taxa = sweep(aml_taxa, 1, rowSums(aml_taxa), FUN = "/")
+
+# log transform
+aml_taxa = log(aml_taxa, base=2)
+
+if(cache == F){
+# check distributions
+aml_taxa_dist_plot_2 <- ggplot(reshape2::melt(as.matrix(aml_taxa)))+
+  ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(x="Relative Abundance", y="Frequency")
+  
+saveRDS(aml_taxa_dist_plot_2, "../saved/aml_taxa_dist_plot_2.Rds")
+}
+
+aml_taxa_dist_plot_2 <- readRDS("../saved/aml_taxa_dist_plot_2.Rds")
+
+aml_taxa_dist_plot_2
+```
+
+Log transforming improved the distributions to approximately normal, but still right skewed. Nonetheless, it's appropriate to continue on to building models.
+
+## Model building
+
+The authors approach the machine learning task in a variety of ways:
+*Our multi-level validation strategy includes the assessment of microbiome models on single cohorts, across stages of the same study, across different studies, and across target outcomes and conditions*
+
+I'm interested in validating [Fig 2](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977#pcbi.1004977.ref032), where they calculte a variety of metrics including AUC, for each of the datasets separately. Of note, they evaluate both Random Forest and SVM models. For species-based models, they employed a radial basis kernel.
+
+Since they also mention evaluating elastic net, let's go ahead and additional models.
+
+They also compared their models against null datasets, where the class label was randomly shuffled.
+
+So, we'll do the following:
+
+- For each of the 6 diseases/datasets:
+
+- Evaluate 5 machine learning algorithms,
+
+- Building 15 models,
+
+- Using real and null data,
+
+- And extract the internal validation AUCs.
+
+```{r model_building_1, echo=F, results=F, plot=T, warning=F, message=F}
+
+# data
+# aml_taxa
+# aml_meta c("sampleID", "pubmedid", "disease")
+
+datasets = c("IBD", "cirrhosis", "cancer", "T2D", "WT2D", "obesity")
+ml.models = c("glmnet","ranger","svmLinear","svmRadial","xgbTree")
+
+if(cache == F){
+  
+# loop through each dataset for SVM and ranger
+set.seed(25)
+t1 <- Sys.time()
+aml_model_loop = 
+  do.call(rbind, lapply(c("real", "null"), function(type){
+  do.call(rbind, lapply(1:15,function(seed){
+  do.call(rbind, lapply(ml.models, function(algo){
+        print(paste(type, " ", seed, " ", algo, " ", sep=""))
+
+  do.call(rbind, parallel::mclapply(datasets, function(x){
+   #  x = c("IBD", "cirrhosis", "cancer", "T2D", "WT2D", "obesity")[6]
+  # subset metadata
+  metadata.subset = aml_meta %>% subset(studyID == x) %>% select(sampleID, disease) %>% data.frame()
+  metadata.subset$disease = ifelse(metadata.subset$disease == "none", "none", "disease")
+  # subset data
+  data.subset = aml_taxa[make.names(metadata.subset$sampleID),] %>% data.frame()
+  # append class label
+  data.subset$disease = metadata.subset[match(rownames(data.subset), make.names(metadata.subset$sampleID)),]$disease
+  # interestingly, we can just remove the NA because they are duplicated (note the .1 added to   rowname)
+  data.subset = subset(data.subset, !is.na(disease))
+  data.subset$disease = as.factor(data.subset$disease)
+ #  table(data.subset$disease)
+  
+  # conditionally shuffle class labels
+    if(type == "null"){
+    set.seed(seed)
+    data.subset$disease = sample(data.subset$disease, replace=F)
+    }
+  
+    # build model with downsampling
+# conditionally modify glmnet tuning
+  if(algo == "glmnet"){
+      set.seed(seed)
+    aml_train = caret::train(
+  disease ~ .,
+  data = data.subset,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary,
+                                  sampling = "down"),
+  tuneGrid = expand.grid(
+  alpha = seq(0, 1, length = 10),
+  lambda = 10^seq(2, -4, length = 100)),
+  metric = "ROC",
+  method = "glmnet",
+  preProc = c("center", "scale")
+)
+}else{
+  # build model with downsampling
+  set.seed(seed)
+  aml_train <- caret::train(
+    disease ~ .,
+    data = data.subset,
+    trControl = caret::trainControl(method="cv", 
+                                    number = 5,
+                                    savePredictions = TRUE,
+                                    classProbs = TRUE,
+                                    summaryFunction = caret::twoClassSummary,
+                                    sampling = "down"),
+    metric = "ROC",
+    method = algo,
+    preProc = c("center", "scale")) %>% suppressWarnings()
+}
+  # extract AUC
+  data.frame(AUC = max(aml_train$results$ROC),
+             Sensitivity = subset(aml_train$results, ROC == max(aml_train$results$ROC))$Sens,
+             Specificity = subset(aml_train$results, ROC == max(aml_train$results$ROC))$Spec,
+             model = algo,
+             data = x,
+             iter = seed,
+             datatype = type)
+  }))
+  }))
+  }))
+  }))
+   t2 <- Sys.time()
+ t2-t1 # 7 min for all
+ 
+ saveRDS(aml_model_loop, "../saved/aml_model_loop.Rds")
+}
+
+
+ aml_model_loop =  readRDS("../saved/aml_model_loop.Rds")
+
+ # apply statistics
+ 
+aml_model_ttest = do.call(rbind, lapply(ml.models, function(algo){
+  do.call(rbind, lapply(datasets, function(x){
+    print(paste(algo, " ", x))
+    data.subset = aml_model_loop %>% distinct() %>% subset(model == algo & data == x)
+    ttest_auc_result = t.test(subset(data.subset, datatype == "real")$AUC,
+           subset(data.subset, datatype == "null")$AUC)$p.value
+    ttest_sens_result = t.test(subset(data.subset, datatype == "real")$Sensitivity,
+           subset(data.subset, datatype == "null")$Sensitivity)$p.value
+    ttest_spec_result = t.test(subset(data.subset, datatype == "real")$Specificity,
+           subset(data.subset, datatype == "null")$Specificity)$p.value
+    data.frame(model = algo,
+               data = x,
+               AUC = ttest_auc_result,
+               Sensitivity = ttest_sens_result,
+               Specificity = ttest_spec_result)
+  }))
+  })) %>% reshape2::melt() %>%
+  mutate(padj = p.adjust(value, method="bonferroni")) %>%
+  mutate(sig = ifelse(padj < 0.05, "*", NA))
+
+# make long df
+aml_model_loop_df = reshape::melt(aml_model_loop, 
+                     id=c("model","data","iter","datatype"),
+                     variable.name = c("AUC", "Sensitivity","Specificity"))
+# extract median value
+aml_model_loop_median = aml_model_loop_df %>%
+  group_by(data, model, datatype,variable) %>%
+  mutate(med.val = median(value)) %>% 
+  dplyr::select(data,model,datatype,variable,med.val) %>% distinct()
+
+ggplot()+
+  geom_violin(data=subset(aml_model_loop_df, datatype=="null"), aes(x = model, y=value), fill="grey",color=NA, alpha=0.6)+
+  geom_violin(data=subset(aml_model_loop_df, datatype=="real"), aes(x = model, y=value, fill=model), alpha=0.6)+
+  geom_point(data=subset(aml_model_loop_median, datatype=="real"), 
+             aes(x =  model, y=med.val, fill= model), shape=21, size=1.5)+
+  geom_text(data=aml_model_ttest, aes(x=model, Inf, label=sig), vjust=1.2)+
+  theme_bw()+theme(legend.position="none",
+                           axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
+  facet_grid(variable ~ data, switch="y")+
+  labs(x="Model", y="")
+
+```
+
+This plot shows the distributions of 15 repeats of using real (colored) data and null (grey) data to train each model. I ran a t-test on each comparison followed by a Bonferroni adjustment to control the false discovery rate. Significant values are indicated by a *.
+
+Using the internal validation metrics, we can see that random forest (ranger) is generally superior to SVM across datasets. Elastic net (glmnet) is quite competitive with ranger.
+
+We can also get a sense of how some diseases (e.g. obesity) are harder to predict than others (e.g. IBD).
+
+Importantly, most of these values are either as good or better than those reported in the original study.
+
+Let's consider these results validated and move on to an interesting technique rarely employed in the literature: multi-class machine learning.
+
+# **Extending** the analysis
+
+The it would be ideal to build ONE model that predict each of the various diseases.
+
+We can formulate this in different ways, like a one-vs-all or several one-vs-one classifiers.
+
+Here, I want to demonstrate how a multi-class classifier performs using pooled datasets.
+
+## Multiclass Classifier
+
+First, we'll build a multiclass random forest that handles all samples simultaneously:
+
+```{r, multivariate_rf_loop, echo=F, results=F, plot=T, warning=F, message=F}
+
+  # loop 15 times
+  metadata.subset = aml_meta %>% select(sampleID, disease) %>% data.frame()
+  # subset data
+  data.subset = aml_taxa
+  rownames(data.subset) = make.names(rownames(data.subset))
+  data.subset = aml_taxa[make.names(metadata.subset$sampleID),] %>% data.frame()
+  # append class label
+  data.subset$disease = metadata.subset[match(rownames(data.subset), make.names(metadata.subset$sampleID)),]$disease
+  # interestingly, we can just remove the NA because they are duplicated (note the .1 added to rowname)
+  data.subset = subset(data.subset, !is.na(disease))
+  data.subset$disease = as.factor(data.subset$disease)
+  
+if(cache == F){
+aml_multi_rf_loop = do.call(rbind, lapply(1:15, function(seed){
+  
+  # run RF
+  set.seed(seed)
+  aml_multirf = ranger::ranger(disease ~ .,
+                               data.subset,
+                               probability = TRUE,
+                               keep.inbag = TRUE) # critical to avoid overfitting
+  
+  # save dataframe with predictions, to calculate Confusion Matrix, AUC, Sens, and Spec later
+    aml_multirf_predictions = data.frame(aml_multirf$predictions,
+                                         iter = seed)
+    
+    aml_multirf_predictions
+    }))
+
+saveRDS(aml_multi_rf_loop, "../saved/aml_multi_rf_loop.Rds")
+        
+}
+
+aml_multi_rf_loop = readRDS("../saved/aml_multi_rf_loop.Rds")
+
+``` 
+
+
+```{r, multivariate_rf_conf, echo=F, results=F, plot=T, warning=F, message=F}
+
+# first, let's plot a confusion matrix
+
+aml_multi_rf_conf = do.call(rbind, lapply(1:15, function(seed){
+    
+  aml_multi_subset = subset(aml_multi_rf_loop, iter == seed)
+  aml_multi_subset$iter = NULL
+  
+  oob_class <- colnames(aml_multi_subset)[max.col(aml_multi_subset)]  # Convert probabilities to class labels
+
+  oob_class <- factor(oob_class, levels = levels(data.subset$disease))
+
+  # Compute confusion matrix based on OOB predictions
+  conf_matrix <- confusionMatrix(oob_class, data.subset$disease)
+  conf_matrix_df = conf_matrix$table %>% reshape2::melt()
+
+  conf_matrix_df$iter = seed
+  
+  conf_matrix_df
+}))
+
+# add total true value per dataset
+true_ref = data.subset$disease %>% table() %>% data.frame()
+colnames(true_ref) = c("Reference", "Freq")
+
+# collapse to mean value
+aml_multi_rf_conf_df = aml_multi_rf_conf %>%
+  merge(true_ref, by="Reference") %>%
+  group_by(Prediction, Reference) %>%
+  # calculate mean pred and sd
+  mutate(mean.val = mean(value), sd.val = sd(value)) %>%
+  # create variable with % accuracy
+  group_by(Reference) %>%
+  mutate(mean.perc = mean.val / Freq) %>%
+  dplyr::select(Prediction, Reference, mean.val, mean.perc, sd.val) %>% distinct()
+
+# plot confusion matrix
+aml_multi_rf_conf_plot = ggplot(aml_multi_rf_conf_df,
+       aes(x=Reference, y = Prediction))+
+  geom_tile(color="white", aes(fill = mean.perc*100))+
+  geom_text(aes(label = paste0(round(mean.val, digits=0), "\n(",round(mean.perc*100, digits=0),"%)", sep="")),
+            color = "white")+
+  scale_fill_gradient2(low = scales::muted("blue"),
+                       mid = "white", midpoint = 50,
+                       high = scales::muted("red"))+
+  theme_minimal()+
+  labs(x="True", y="Predicted", fill="Mean\nPercentage\nPrediction")
+
+aml_multi_rf_conf_plot
+
+``` 
+
+This confusion matrix illustrates a general low accuracy in predicting each disease. That is, the values in parentheses along the diagonal tiles are quite low for most diseases. The model is predicting most microbiomes belong to healthy individuals.
+
+I suspect the massive class imbalance (e.g. n=665 "none" vs n=48 "cancer") is causing the model to bias its prediction towards the overrepresented class. 
+
+What do the ROC curves look like?
+
+```{r, multivariate_rf_auc, echo=F, results=F, plot=T, warning=F, message=F}
+
+if(cache == F){
+aml_multi_rf_auc_loop = do.call(rbind, lapply(1:15, function(seed){
+  
+  # run RF
+  set.seed(seed)
+  aml_multirf = ranger::ranger(disease ~ .,
+                               data.subset,
+                               probability = TRUE,
+                               keep.inbag = TRUE) # critical to avoid overfitting
+  
+  aml_multirf_roc <- pROC::multiclass.roc(data.subset$disease, 
+                                          aml_multirf$predictions, 
+                                          levels = levels(data.subset$disease))
+  
+  # loop through each disease to calculate Sens and Spec
+  # initialize dataframe
+  roc_data = data.frame()
+  for(dis in levels(data.subset$disease)){
+    # extract disease-specific ROC
+    labels = as.numeric(data.subset$disease == dis)
+    roc_obj = pROC::roc(labels, data.frame(aml_multirf$predictions)[[dis]])
+    # make dataframe
+    roc_obj_df = data.frame(
+      TPR = rev(roc_obj$sensitivities),
+      FPR = rev(1-roc_obj$specificities),
+      Class = dis
+    )
+    # append previous data
+    roc_data = rbind(roc_data, roc_obj_df)
+  }
+    # add seed
+  roc_data$iter == seed
+  # add overall AUC
+  roc_data$auc = aml_multirf_roc$auc
+  
+  roc_data
+  
+}))
+
+# compute mean and CI
+aml_multi_rf_auc_loop_summary <- aml_multi_rf_auc_loop %>%
+  group_by(Class, TPR) %>%
+  summarise(
+    Mean_Sensitivity = mean(FPR),
+    Lower_CI = quantile(FPR, 0.025),
+    Upper_CI = quantile(FPR, 0.975),
+    .groups = "drop"
+  ) %>%
+  group_by(Class) %>%
+  arrange(TPR) %>%
+  mutate(Mean_Sensitivity = cummax(Mean_Sensitivity)) %>%
+  ungroup()
+  
+# compute mean AUC
+mean_auc = mean(aml_multi_rf_auc_loop$auc)
+
+# plot Using ggplot2
+aml_multi_rf_auc_plot = ggplot() +  
+  # mean ROC Curve
+  geom_line(data = aml_multi_rf_auc_loop_summary, aes(x = Mean_Sensitivity, y = TPR, color=Class), size = 1) +
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Multiclass AUC", " (", round(mean_auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity", color="Disease") +
+  theme_minimal()
+aml_multi_rf_auc_plot
+
+saveRDS(aml_multi_rf_auc_plot, "../saved/aml_multi_rf_auc_plot.Rds")
+        
+}
+
+aml_multi_rf_auc_plot = readRDS("../saved/aml_multi_rf_auc_plot.Rds")
+
+aml_multi_rf_auc_plot
+
+``` 
+
+This ROC curve seems to suggest all diseases are being predicted reasonably well. However, "none" is predicted the poorest, likely because of the high degree of false positives observed in the confusion matrix.
+
+## Downsample
+
+Let's downsample these data down to the smallest dataset (n=48). I suspect this will sacrifice accuracy, but improve the false positive rate.
+
+```{r, multivariate_rf_loop_balanced, echo=F, results=F, plot=T, warning=F, message=F}
+
+  # loop 15 times
+  metadata.subset = aml_meta %>% select(sampleID, disease) %>% data.frame()
+  # subset data
+  data.subset = aml_taxa
+  rownames(data.subset) = make.names(rownames(data.subset))
+  data.subset = aml_taxa[make.names(metadata.subset$sampleID),] %>% data.frame()
+  # append class label
+  data.subset$disease = metadata.subset[match(rownames(data.subset), make.names(metadata.subset$sampleID)),]$disease
+  # interestingly, we can just remove the NA because they are duplicated (note the .1 added to rowname)
+  data.subset = subset(data.subset, !is.na(disease))
+  data.subset$disease = as.factor(data.subset$disease)
+  
+if(cache == F){
+  
+aml_multi_rf_loop_sample = do.call(rbind, lapply(1:15, function(seed){
+  
+  # downsample
+  set.seed(seed)
+  data.subset.sample = data.subset %>%
+    group_by(disease) %>%
+    slice_sample(n=48)
+  
+  # run RF
+  set.seed(seed)
+  aml_multirf_sample = ranger::ranger(disease ~ .,
+                               data.subset.sample,
+                               probability = TRUE,
+                               keep.inbag = TRUE) # critical to avoid overfitting
+  
+    # save dataframe with predictions, to calculate Confusion Matrix, AUC, Sens, and Spec later
+    aml_multirf_predictions_sample = data.frame(aml_multirf_sample$predictions,
+                                         iter = seed)
+    
+    # add truth
+    aml_multirf_predictions_sample$true = data.subset.sample$disease
+    # add AUC for plotting
+    aml_multirf_predictions_sample$auc = aml_multirf_sample$auc
+    aml_multirf_predictions_sample
+    
+    }))
+
+saveRDS(aml_multi_rf_loop_sample, "../saved/aml_multi_rf_loop_sample.Rds")
+        
+}
+
+aml_multi_rf_loop_sample = readRDS("../saved/aml_multi_rf_loop_sample.Rds")
+
+``` 
+
+
+```{r, multivariate_rf_conf_balanced, echo=F, results=F, plot=T, warning=F, message=F}
+
+# first, let's plot a confusion matrix
+
+aml_multi_rf_conf_sample = do.call(rbind, lapply(1:15, function(seed){
+    
+  aml_multi_subset_sample = subset(aml_multi_rf_loop_sample, iter == seed)
+  aml_multi_subset_sample$iter = NULL
+  # extract out labels
+  sample_labels = aml_multi_subset_sample$true
+  aml_multi_subset_sample$true = NULL
+  
+  oob_class_sample <- colnames(aml_multi_subset_sample)[max.col(aml_multi_subset_sample)]  # Convert probabilities to class labels
+
+  oob_class_sample <- factor(oob_class_sample, levels = levels(sample_labels))
+
+  # Compute confusion matrix based on OOB predictions
+  conf_matrix_sample <- confusionMatrix(oob_class_sample, sample_labels)
+  conf_matrix_sample_df = conf_matrix_sample$table %>% reshape2::melt()
+
+  conf_matrix_sample_df$iter = seed
+  
+  conf_matrix_sample_df
+}))
+
+# collapse to mean value
+aml_multi_rf_conf_sample_df = aml_multi_rf_conf_sample %>%
+  group_by(Prediction, Reference) %>%
+  # calculate mean pred and sd
+  mutate(mean.val = mean(value), sd.val = sd(value)) %>%
+  # create variable with % accuracy
+  group_by(Reference) %>%
+  mutate(mean.perc = mean.val / 48) %>%
+  dplyr::select(Prediction, Reference, mean.val, mean.perc, sd.val) %>% distinct()
+
+aml_multi_rf_conf_sample_plot = ggplot(aml_multi_rf_conf_sample_df,
+       aes(x=Reference, y = Prediction))+
+  geom_tile(color="white", aes(fill = mean.perc*100))+
+  geom_text(aes(label = paste0(round(mean.val, digits=0), "\n(",round(mean.perc*100, digits=0),"%)", sep="")),
+            color = "white")+
+  scale_fill_gradient2(low = scales::muted("blue"),
+                       mid = "white", midpoint = 50,
+                       high = scales::muted("red"))+
+  theme_minimal()+
+  labs(x="True", y="Predicted", fill="Mean\nPercentage\nPrediction")
+
+aml_multi_rf_conf_sample_plot
+
+``` 
+
+This looks significantly more like a confusion matrix. The values in parentheses along the diagonal indicate the accuracy of each disease being predicted correctly.
+
+Let's see the ROC curve:
+
+```{r, multivariate_rf_auc_balanced, echo=F, results=F, plot=T, warning=F, message=F}
+
+  # loop 15 times
+  metadata.subset = aml_meta %>% select(sampleID, disease) %>% data.frame()
+  # subset data
+  data.subset = aml_taxa
+  rownames(data.subset) = make.names(rownames(data.subset))
+  data.subset = aml_taxa[make.names(metadata.subset$sampleID),] %>% data.frame()
+  # append class label
+  data.subset$disease = metadata.subset[match(rownames(data.subset), make.names(metadata.subset$sampleID)),]$disease
+  # interestingly, we can just remove the NA because they are duplicated (note the .1 added to rowname)
+  data.subset = subset(data.subset, !is.na(disease))
+  data.subset$disease = as.factor(data.subset$disease)
+  
+if(cache == F){
+  
+aml_multi_rf_auc_sample = do.call(rbind, lapply(1:15, function(seed){
+  
+  # downsample
+  set.seed(seed)
+  data.subset.sample = data.subset %>%
+    group_by(disease) %>%
+    slice_sample(n=48)
+  
+  # run RF
+  set.seed(seed)
+  aml_multirf_sample = ranger::ranger(disease ~ .,
+                               data.subset.sample,
+                               probability = TRUE,
+                               keep.inbag = TRUE) # critical to avoid overfitting
+  
+    # save dataframe with predictions, to calculate Confusion Matrix, AUC, Sens, and Spec later
+    aml_multirf_predictions_sample = data.frame(aml_multirf_sample$predictions,
+                                         iter = seed)
+    
+    # add truth
+    aml_multirf_predictions_sample$true = data.subset.sample$disease
+    # add AUC for plotting
+    aml_multirf_predictions_sample$auc = aml_multirf_sample$auc
+    aml_multirf_predictions_sample
+    
+  # loop through each disease to calculate Sens and Spec
+  # initialize dataframe
+  roc_data_sample = data.frame()
+  for(dis in levels(data.subset$disease)){
+    # extract disease-specific ROC
+    sample_labels = as.numeric(aml_multirf_predictions_sample$true == dis)
+    roc_obj_sample = pROC::roc(sample_labels, data.frame(aml_multirf_sample$predictions)[[dis]])
+    # make dataframe
+    roc_obj_sample_df = data.frame(
+      TPR = rev(roc_obj_sample$sensitivities),
+      FPR = rev(1-roc_obj_sample$specificities),
+      Class = dis
+    )
+    # append previous data
+    roc_data_sample = rbind(roc_data_sample, roc_obj_sample_df)
+  }
+    # add seed
+  roc_data_sample$iter == seed
+  # add overall AUC
+  roc_data_sample$auc = roc_obj_sample$auc
+  
+  roc_data_sample
+  
+}))
+
+# compute mean and CI
+aml_multi_rf_auc_loop_summary_sample <- aml_multi_rf_auc_sample %>%
+  group_by(Class, TPR) %>%
+  summarise(
+    Mean_Sensitivity = mean(FPR),
+    Lower_CI = quantile(FPR, 0.025),
+    Upper_CI = quantile(FPR, 0.975),
+    .groups = "drop"
+  ) %>%
+  group_by(Class) %>%
+  arrange(TPR) %>%
+  mutate(Mean_Sensitivity = cummax(Mean_Sensitivity)) %>%
+  ungroup()
+  
+# compute mean AUC
+mean_auc_sample = mean(aml_multi_rf_auc_sample$auc)
+
+# plot 
+aml_multi_rf_auc_sample_plot = ggplot() +  
+  # mean ROC Curve
+  geom_line(data = aml_multi_rf_auc_loop_summary_sample, aes(x = Mean_Sensitivity, y = TPR, color=Class), size = 1) +
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Downsampled Multiclass AUC", " (", round(mean_auc_sample, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity", color="Disease") +
+  theme_minimal()
+aml_multi_rf_auc_sample_plot
+
+saveRDS(aml_multi_rf_auc_sample_plot, "../saved/aml_multi_rf_auc_sample_plot.Rds")
+        
+}
+  
+
+aml_multi_rf_auc_sample_plot = readRDS("../saved/aml_multi_rf_auc_sample_plot.Rds")
+
+aml_multi_rf_auc_sample_plot
+
+```
+
+Once again, this ROC curve seems to suggest all diseases are being predicted at least reasonably well. We see that the AUC has shrunk by ~5%. We also see that the model performs most poorly with "None" and "T2D", in agreement with the confusion matrix.
+
+
+# Conclusion
+
+To conclude, we found that microbiome-based classifiers could predict disease quite well, particularly when control samples were confined to each study. 
+
+When we built a model that tries to predict all samples together, we found that classification specificities and sensitivities suffered from large class imbalances. This illustrates the importance of balancing datasets when considering class-specific accuracies.
+
