@@ -1,5 +1,5 @@
 ---
-title: "Predicting Disease (Microbiome"
+title: "Predicting Disease (Microbiome)"
 ---
 
 
@@ -42,7 +42,7 @@ aml_meta = aml_meta[,c("sampleID", "subjectID", "disease", "pubmedid")]
 # keep distinct
 aml_meta = distinct(aml_meta)
 # check stats
-aml_meta[,c("disease")] %>% table()
+aml_meta[,c("disease")] %>% table() %>% data.frame()
 
 
 ```
@@ -64,7 +64,7 @@ aml_meta$disease = ifelse(aml_meta$disease == "n", "none",
                                         "IBD",
                                  aml_meta$disease)))
 
-aml_meta[,c("disease")] %>% table()
+aml_meta[,c("disease")] %>% table() %>% data.frame()
 
 
 ```
@@ -95,7 +95,7 @@ Uh oh. That's a notable number of pseudoreplicates. Which condition do they belo
 
 aml_meta[,c("subjectID","disease")] %>% table() %>% data.frame() %>%
   group_by(disease) %>%
-  summarize(sum(Freq>1))
+  summarize(sum(Freq>1)) %>% data.frame()
 
 ```
 
@@ -108,7 +108,7 @@ Here are the final tallies of samples after removing pseudoreplicates.
 aml_meta = aml_meta %>%
   group_by(subjectID) %>%
   slice_max(sampleID, n=1) %>% data.frame()
-aml_meta[,c("disease")] %>% table()
+aml_meta[,c("disease")] %>% table() %>% data.frame()
 
 ```
 
@@ -219,7 +219,7 @@ Log transforming improved the distributions to approximately normal, but still r
 The authors approach the machine learning task in a variety of ways:
 *Our multi-level validation strategy includes the assessment of microbiome models on single cohorts, across stages of the same study, across different studies, and across target outcomes and conditions*
 
-I'm interested in validating [Fig 2](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977#pcbi.1004977.ref032), where they calculte a variety of metrics including AUC, for each of the datasets separately. Of note, they evaluate both Random Forest and SVM models. For species-based models, they employed a radial basis kernel.
+I'm interested in validating [Fig 2](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977#pcbi.1004977.ref032), where they calculate a variety of metrics including AUC, for each of the datasets separately. Of note, they evaluate both Random Forest and SVM models. For species-based models, they employed a radial basis kernel.
 
 Since they also mention evaluating elastic net, let's go ahead and additional models.
 
@@ -231,9 +231,9 @@ So, we'll do the following:
 
 - Evaluate 5 machine learning algorithms,
 
-- Building 15 models,
+- Build models 15 times,
 
-- Using real and null data,
+- For both real and null data sets,
 
 - And extract the internal validation AUCs.
 
@@ -687,9 +687,9 @@ aml_multi_rf_conf_sample_plot
 
 ``` 
 
-This looks significantly more like a confusion matrix. The values in parentheses along the diagonal indicate the accuracy of each disease being predicted correctly.
+This looks considerably better. The values in parentheses along the diagonal indicate that each disease is being predicted much better.
 
-Let's see the ROC curve:
+Let's see the ROC curves:
 
 ```{r, multivariate_rf_auc_balanced, echo=F, results=F, plot=T, warning=F, message=F}
 
@@ -796,12 +796,12 @@ aml_multi_rf_auc_sample_plot
 
 ```
 
-Once again, this ROC curve seems to suggest all diseases are being predicted at least reasonably well. We see that the AUC has shrunk by ~5%. We also see that the model performs most poorly with "None" and "T2D", in agreement with the confusion matrix.
+Once again, these ROC curves seem to suggest all diseases are being predicted at least reasonably well. We see that the AUC has shrunk by ~5%. We also see that the model performs most poorly with "None" and "T2D", in agreement with the confusion matrix.
 
 
 # Conclusion
 
 To conclude, we found that microbiome-based classifiers could predict disease quite well, particularly when control samples were confined to each study. 
 
-When we built a model that tries to predict all samples together, we found that classification specificities and sensitivities suffered from large class imbalances. This illustrates the importance of balancing datasets when considering class-specific accuracies.
+When we built a model that tries to predict all diseases at once, we found that classification specificities and sensitivities suffered from large class imbalances. This illustrates the trade-offs of balancing datasets when considering class-specific accuracies.
 
