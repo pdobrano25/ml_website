@@ -48,7 +48,7 @@ gevers_16S <- t(gevers_16S) %>% data.frame()
 
 data.frame(depth = rowSums(gevers_16S)) %>%
   ggplot()+
-  ggridges::geom_density_ridges(aes(x=depth, y=1))+
+  ggridges::geom_density_ridges(aes(x=depth, y=1), fill="white", alpha=0.2)+
   theme_minimal()+
   labs(title = "Sequencing Depth",
        x = "Reads per sample",

@@ -26,6 +26,8 @@ Check the total number of samples and features:
 
 ```{r, data_loading, echo=F}
 
+# SLOW; cannot be sped up
+
 # load normalized count data (from GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE193677)
 # click adj_counts
 sinai_data = read.csv("../sinai_validation/GSE193677_norm_counts_TPM_GRCh38.p13_NCBI.tsv", sep="\t")
@@ -151,7 +153,9 @@ sinai_meta %>%
   #subset(Location == "Rectum" & Status == "NonI") %>% 
   select(Patient, Disease) %>%
   distinct() %>% 
-  select(Disease) %>% table()
+  select(Disease) %>% table() %>%
+  data.frame() %>%
+  `colnames<-`(c("disease", "sample count"))
 
 ```
 
@@ -216,7 +220,10 @@ table(sinai_meta[,c("Location", "Status", "Disease")]) %>% data.frame() %>%
   group_by(Location, Disease, Status) %>%
     mutate(sum.location.disease.status = sum(Freq)) %>% data.frame() %>%
   arrange(-sum.location) %>%
-  head()
+  head() %>%
+  `colnames<-`(c("Location", "Status", "Disease", "Samples",
+                 "Samples per Location",
+                 "Samples per Location per Disease"))
 
 
 ```

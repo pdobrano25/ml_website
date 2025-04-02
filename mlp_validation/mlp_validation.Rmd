@@ -56,7 +56,7 @@ Here is the distribution of *Faecalibacterium prausnitzii*, a highly abundant an
 # check normality
 data.frame(faecali = nishijima.training[,1]) %>%
   ggplot()+
-  ggridges::geom_density_ridges(aes(x=faecali, y=1))+
+  ggridges::geom_density_ridges(aes(x=faecali, y=1), fill="white", alpha=0.2)+
   theme_minimal()+
   labs(title = colnames(nishijima.training)[1],
        x = paste(colnames(nishijima.training)[1], "Log Abundance", sep=" "),
@@ -74,7 +74,7 @@ Here is a distribution of the minimum values of all taxa:
 # was the same value imputed for 0?
 data.frame(pseudo = apply(nishijima.training, 1, min) ) %>%
   ggplot()+
-  ggridges::geom_density_ridges(aes(x=pseudo, y=1))+
+  ggridges::geom_density_ridges(aes(x=pseudo, y=1), fill="white", alpha=0.2)+
   theme_minimal()+
   labs(title = "Pseudocount distribution",
        x = "Minimum value",
@@ -156,7 +156,7 @@ Nishijima uses Pearson correlation coefficients to evaluate the predictive perfo
 
 data.frame(obs = nishijima.model.predictions$obs) %>%
   ggplot()+
-  ggridges::geom_density_ridges(aes(x=obs, y=1))+
+  ggridges::geom_density_ridges(aes(x=obs, y=1), fill="white", alpha=0.2)+
   theme_minimal()+
   labs(title = "Microbial Load Distrubtion",
        x = "Measured Microbial Load",
