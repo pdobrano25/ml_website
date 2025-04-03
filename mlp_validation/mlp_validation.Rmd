@@ -123,7 +123,7 @@ vandeputte.testing[1:10,c(1:4)]
 
 First, let's see how Nishijima's model performs "out-of-the-box".
 
-We will compare the performance using **Internal Validation** (performed during model training and cross-validation) and, later, **External Validation** (performed on the testing dataset).
+We will compare the performance using **Internal Validation** (performed during model training and cross-validation) and, later, **External Validation** (performed on the testing data set).
 
 ## Internal Validation
 
@@ -558,7 +558,7 @@ model.loop.pearson.plot
 
 ```
 
-## Conclusions 
+# Conclusions 
 
 From the above, we can conclude that XGBoost (xgbTree) performs well, but variably, on the validation data set. Other models perform comparably, like elastic net (glmnet) and random forest (ranger). 
 

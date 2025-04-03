@@ -56,7 +56,7 @@ data.frame(depth = rowSums(gevers_16S)) %>%
 
 ```
 
-Already we can see that there are very few reads per sample. This study was published in 2014, and biopsies were used for this microbiome analysis, which explains the low data coverage.
+Already we can see that there are very few reads per sample. This study was published in 2014, before deeper sequencing technologies were available and affordable. Additionally, microbiomes were harvested from biopsies, which have low bacterial biomass compared to human DNA.
 
 There are 446 samples, with a minimum read count of:
 ```{r, min_read, echo=F}
@@ -98,9 +98,9 @@ gevers_16S_gen[1:5,1:5]
 
 ## Model construction
 
-We are going to try to use lasso regression to predict CD. First, we need to process the data (e.g. log transform with a pseudocount). Interestingly, the authors do not state that they log-transformed their data.
+We are going to try using lasso regression to predict CD. First, we need to process the data (e.g. log transform with a pseudocount). Interestingly, the authors do not state that they log-transformed their data.
 
-We should also evaluate whether our dataset is imbalanced.
+We should also evaluate whether our data set is imbalanced.
 
 ```{r, data_processing, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -125,7 +125,7 @@ table(gevers_16S_cd$CD)
 
 There is a slight **class imbalance** in the dataset, which can lead to a bias that increases the tendency for the model to guess a sample belongs to the larger class.
 
-Class imbalances can be approached a few ways, such as down-sampling, up-sampling with synthetic data, a hybrid approach, or simply ignoring them.
+Class imbalances can be approached a few ways, such as downsampling, upsampling with synthetic data, a hybrid approach, or simply ignoring them.
 
 Let's follow the author's methods and build a lasso without balancing groups during CV:
 
@@ -291,7 +291,7 @@ Apart from other potential differences in data pre-processing (which I circumven
 
 At the time this paper was published, machine learning was not widely adopted in the microbiome literature.
 
-Lasso is a reasonable choice to built a predictive algorithm, but others (e.g. random forest) tend to be superior. Let's see if that assumption holds with this dataset, by repeating the analysis above with different algorithms and evaluating the internal validation AUCs.
+Lasso is a reasonable choice to built a predictive algorithm, but others (e.g. random forest) tend to be superior. Let's see if that assumption holds with this data set, by repeating the analysis above with different algorithms and evaluating the internal validation AUCs.
 
 ```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
 # select models
@@ -381,7 +381,7 @@ ggplot(gevers_model_loop)+
 The assumption holds: the median random forest performance is superior to all other models, including lasso.
 
 
-## Conclusions
+# Conclusions
 
 Here, we replicated Gevers' analysis and concluded that while lasso is superior to other common machine learning models (based on internal validation performance). However, I could not replicate their published AUC (0.85).
 

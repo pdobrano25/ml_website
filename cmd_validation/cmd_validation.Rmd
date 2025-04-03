@@ -78,7 +78,7 @@ cmd_samples$study_name = ifelse(cmd_samples$study_name %in% c("LifeLinesDeep_201
 table(cmd_samples[,c("study_name", "study_condition")])
 ```
 
-We can see there is some fairly large imbalances in the data sets. The authors downsampled the larger class until the imbalance was closer to "1:2 to 1:3". It appears that they performed this balancing once, and discarded the rest of the data from the analyses thereafter.
+We can see some fairly large imbalances in the data sets. The authors downsampled the larger class until the imbalance was closer to "1:2 to 1:3". It appears that they performed this balancing once, and discarded the rest of the data from the analyses thereafter.
 
 Instead of doing this (because we can't fully replicate their results without knowing which samples they discarded), we will evaluate the impact of balancing using an algorithm called **SCUT** [(SMOTE and Cluster-based Undersampling)](https://www.scitepress.org/Link.aspx?doi=10.5220/0005595502260234)
 
@@ -230,9 +230,10 @@ ggplot() +
 ```
 
 # Should we rebalance?
-Let's compare the performance of an imbalanced dataset with and without hybrid up + down sampling (using SCUT).
 
-The LifelinesDeep + VichVila datasets contain 1135 controls and 355 IBD samples, a ratio of 3:1. Let's combine it with the HMP data to evaluate the Nielsen dataset.
+Let's compare the performance of an imbalanced data set with and without hybrid up + down sampling (using SCUT).
+
+The LifelinesDeep + VichVila datasets contain 1135 controls and 355 IBD samples, a ratio of 3:1. Let's combine it with the HMP data to evaluate the Nielsen data set.
 
 Here is the ROC when using *unbalanced* data:
 
@@ -284,7 +285,7 @@ Evidently, re-balancing achieves a comparable AUC with unremarkable specificitie
 
 Now, let's move on and evaluate the LOCO-CV AUCs for the other 2 datasets.
 
-Here is the ROC curve when using the Lifelines + Nielsen datasets to build a model, and the HMP dataset to evaluate:
+Here is the ROC curve when using the Lifelines + Nielsen data sets to build a model, and the HMP data set to evaluate:
 
 ```{r, nie_lld, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -307,7 +308,7 @@ nie_lld
 
 ```
 
-Here is the ROC curve when using the Nielson + HMP datasets to build a model, and the Lifelines dataset to evaluate:
+Here is the ROC curve when using the Nielson + HMP data sets to build a model, and the Lifelines data set to evaluate:
 
 ```{r, nie_hmp, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -338,7 +339,7 @@ Nielsen was originally 0.780, but is 0.695 here.
 HMP was originally 0.713, but is 0.692 here.
 Lifelines was originally 0.843, but is 0.832 here.
 
-I suspect this is because each of our training datasets are missing 3 additional cohorts! Without this data freely available, we cannot fully replicate the authors' results.
+I suspect this is because each of our training data sets are missing 3 additional cohorts! Without these data freely available, we cannot fully replicate the authors' results.
 
 Nonetheless, we can extend this analysis to compare other machine learning models.
 
@@ -411,7 +412,7 @@ ggplot(cmd_model_loop)+
 *Lifelines was originally 0.843.*
 *Nielsen was originally 0.780.*
 
-From these results, it appears that Random Forest is the best in 2 / 3 cohorts. Elastic net (glmnet) approaches the published AUC (0.780) performance for the Nielsen dataset.
+From these results, it appears that Random Forest is the best in 2 / 3 cohorts. Elastic net (glmnet) approaches the published AUC (0.780) performance for the Nielsen data set.
 
 However, I suspect that the AUCs in the Nielsen (NIE) are being influenced by class imbalances, such that *sensitivities* are high but *specificities* are low (or vice versa).
 
@@ -449,8 +450,8 @@ Here, we see that where selected models had decent AUCs, the specificity was hig
 
 This illustrates the limitations of using imbalanced datasets and how a single metric (e.g. AUC) can hide key performance attributes (e.g. sensitivity). The study's authors did not evaluate these metrics, instead relying only on the composite AUC score to render conclusions.
 
-# Conclusion
+# Conclusions
 
 To conclude, I could not validate the performances of all 6 cohorts included in the original study, and my re-analysis yielded lower performances in the available 3 cohorts.
 
-Importantly, AUCs in these datasets were sensitive to class imbalances. Despite using hybrid sampling, sensitivities were quite variable.
+Importantly, AUCs in these data sets were sensitive to class imbalances. Despite using hybrid sampling, sensitivities were quite variable.

@@ -15,14 +15,15 @@ library("ggplot2")
 
 Their publicly available [dataset](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE193677) enables testing other hypotheses using machine learning.
 
-Below, we process the dataset, and apply machine learning to solve two tasks.
+Below, we process the dataset and apply machine learning to solve two tasks.
 
 - **Predict IBD** in inflamed and non-inflamed rectum biopsy samples
 
 - **Predict IBD in non-inflamed** rectum and ileum biopsy samples using an **ensemble model**.
 
 # Data processing
-Check the total number of samples and features:
+
+First, let's check the total number of samples and features:
 
 ```{r, data_loading, echo=F}
 
@@ -36,7 +37,7 @@ print(paste(dim(sinai_data)[1], " samples by ", dim(sinai_data)[2], " features",
 
 ```
 
-Next, we will assign gene names to transcripts. Not all transcripts can be annotated, so we will remove these. This is not necessarily the optimal decision for the purpose of building the most accurate classifier, but it helps render interpretability.
+Next, we will assign gene names to transcripts. Not all transcripts can be annotated, so we will remove them. This is not necessarily the optimal decision for the purpose of building the most accurate classifier, but it helps render interpretability.
 
 ```{r, keep_annotated, echo=F}
 # create gene annotations: https://www.gencodegenes.org/human/release_46.html
@@ -85,7 +86,7 @@ This removed a relatively small number of features.
 
 ## Distribution check
 
-Lastly, we'll check the distributions of the data to ensure they are approximately normally distributed prior to visualizing with PCA.
+Lastly, we'll check the distributions of the data to ensure they are approximately normally distributed prior to visualizing with PCA. Let's randomly select 50 genes to get a sense of the distributions:
 
 ```{r, data_distributions, echo=F, results = T, message=F, warning=F}
 
@@ -104,7 +105,7 @@ These data appear severely [right-skewed](https://en.wikipedia.org/wiki/Skewness
 
 ## Log-transformation
 
-Let's see what happens with a log-transform (with pseudocount).
+Let's apply a log-transform (with pseudocount).
 
 ```{r, data_distributions_post_log, echo=F, results = F, plot=T, message=F, warning=F}
 
@@ -122,9 +123,10 @@ sample(sinai_data_log, size=50, replace=F)%>% as.matrix() %>%
 
 ```
 
-These generally look significantly better than before.
+These look significantly more normally-distributed than before.
 
-We have finished pre-processed our data. Here are what the first 4 rows and columns look like:
+We have finished pre-processing our data. Here are what the first 4 rows and columns look like:
+
 
 ```{r, sense_of_data, echo=F}
 sinai_data_log[1:4, 1:4]
@@ -161,7 +163,7 @@ sinai_meta %>%
 
 ## Principal Component Analysis 
 
-Now let's visualize (with PCA) what how the samples relate to each other after dimension reduction.
+Now let's visualize how the samples relate to each other after dimension reduction (using PCA): 
 
 ```{r, all_data_pca, echo = F, results = T, warning = F}
 
@@ -228,9 +230,9 @@ table(sinai_meta[,c("Location", "Status", "Disease")]) %>% data.frame() %>%
 
 ```
 
-Here, we can see that the rectum has the most samples overall, with high representation per diseae and status.
+We can see that the rectum compartment has the most samples overall, with high representation per disease and status.
 
-It also makes biological sense. The rectum may be inflamed in CD or UC, but the ileum is rarely inflamed in UC.
+This makes biological sense. The rectum may be inflamed in CD or UC, but the ileum is rarely affected in UC.
 
 ## Subset to rectum
 
@@ -318,9 +320,9 @@ ggplot(sinai_rectum_pca_df,
 
 PCA of rectum biopsies shows good separation based on whether the tissue was inflamed or not.
 
-Now we can start asking questions about whether the transcriptome can diagnosing inflammation or discriminate disease.
+Now we can start asking questions about whether the transcriptome can diagnose inflammation or discriminate disease.
 
-I personally think predicting inflammation is not a useful application of machine learning (bordering on tautological), because a clinician will be able to determine whether a tissue is (endoscopically) inflammed while sampling it. Nonetheless, it poses a typical task for  machine learning.
+I personally think predicting inflammation is not a useful application of machine learning (bordering on tautological), because a clinician will be able to determine whether a tissue is (endoscopically) inflamed while sampling it. Nonetheless, it poses a straightforward task for machine learning.
 
 ## Molecular Inflammation Score
 
@@ -334,13 +336,13 @@ So, we will move on to applying machine learning instead.
 
 # **Predicting IBD**
 
-For the sake of running this analysis locally, we're going to reduce the number of features.
+For the sake of running this analysis locally, we're going to drastically reduce the number of features used as predictive variables.
 
 ## Variance filter
 
-**Feature selection** is an important step in pre-processing data prior to training a model. We have a decently-sized dataset, but I wouldn't want to spend any samples performing supervised feature selection (e.g. running t-tests to extract features we suspect to be associated with the outcome). Instead, we'll apply unsupervised feature selection by removing low variance features.
+**Feature selection** is an important step in pre-processing data prior to training a model. We have a decently-sized dataset, but I prefer not spending samples performing supervised feature selection (e.g. running t-tests to extract features we suspect to be associated with the outcome). Instead, we'll apply unsupervised feature selection by removing low variance and highly correlated features.
 
-Let's use caret's build in "nearZeroVar" function. From the [documentation](https://www.rdocumentation.org/packages/caret/versions/6.0-92/topics/nearZeroVar), this function removes features with:
+First, let's use caret's build in "nearZeroVar" function. From the [documentation](https://www.rdocumentation.org/packages/caret/versions/6.0-92/topics/nearZeroVar), this function removes features with:
 *one unique value (i.e. are zero variance predictors) or predictors that are have both of the following characteristics: they have very few unique values relative to the number of samples and the ratio of the frequency of the most common value to the frequency of the second most common value is large.*
 
 ```{r, variance_filter, echo=F}
@@ -361,7 +363,7 @@ print(paste("Removed: ", length(nearzervar_features), " features (", round((1 - 
 
 ## Correlated features filter
 
-We can also apply the "findCorrelation" function to eliminate features that are highly correlated (i.e. carry redundant information), and retain a single feature among them to represent the rest. Again, we'll apply an aggressive threshold (Pearson correlation > 0.70).
+We can also apply the "findCorrelation" function to eliminate features that are highly correlated (i.e. carry redundant information), and retain a single feature among them to represent the rest. Here, we'll apply an aggressive threshold (Pearson correlation > 0.70).
 
 ```{r, correlation_filter, echo=F}
 
@@ -388,7 +390,7 @@ print(paste("Removed: ", length(high_cor), " features (", round((1 - ncol(sinai_
 
 ```
 
-Correlation filtering removed an additional 13,659 features (~63%).
+Correlation filtering removed a big chunk of the features.
 
 ## Train model
 
@@ -485,7 +487,7 @@ Even after aggressive feature selection and downsampling, elastic net can predic
 
 ## Questioning the utility
 
-I stated before that I don't consider this a very useful problem to solve. The clinician can make a determination of IBD or not well enough. In fact, I suspect that the high AUC is leveraging the fact that inflammation (visible on endoscopy) is represented by a highly discriminative transcriptomic signature alone, and this model fails in discriminating IBD in non-inflamed samples. Let's explore this suspicion.
+I stated before that I don't consider this a very useful problem to solve. The clinician can make a determination of IBD or not well enough. In fact, I suspect that the high AUC is leveraging the fact that inflammation (visible on endoscopy) is represented by a highly discriminative transcriptomic signature alone, and this model would fail in discriminating IBD in non-inflamed samples. Let's explore this suspicion.
 
 ```{r, model_isnt_useful, echo=F, results=T, warning=F, message=F}
 
@@ -515,11 +517,11 @@ ggplot(sinai_ibd_model_mean,
 
 ```
 
-Here, it is evident that the model is most discriminative if the tissue is simply inflamed. There does appear to be a signal in the non-inflamed UC rectum, but less so for CD.
+Here, it is evident that the model is most discriminative if the tissue is inflamed. There does appear to be a signal in the non-inflamed UC rectum, but less so for CD.
 
 # **Predicting IBD with non-inflamed transcriptomes**
 
-This raises a hypothesis that I have not seen tested before:
+We also have ileum data, which is more specific for CD. Since the rectum should be more specific to UC, a hypothesis can be raised that I have not seen tested before:
 
 Could an **ensemble** of 2 machine learning models (one trained on the rectum and one trained on the ileum) diagnose IBD from controls *in the absence of inflammation* ?
 
@@ -581,9 +583,9 @@ print(paste0("Rectum features: ", ncol(sinai_joint_r_filt_cor), ". Ileum feature
 
 ```
 
-To review, we've limited the dataset patients with matching ileum and rectum samples. We've removed pseudoreplicates, such that each patient is only represented once. Lastly, we've filtered out low variance and correlated (R > 0.70) features.
+To review, we've limited the dataset patients with matching ileum and rectum samples. We've removed pseudoreplicates, such that each patient is only represented once. Lastly, we've filtered out low variance and highly correlated (R > 0.70) features.
 
-Now we can continue on to building an ensemble. We'll build separate classifiers: one for predicting IBD in ileum samples, and one for predicting IBD in rectum samples.
+Now we can continue on to building the ensemble. We'll build separate classifiers: one for predicting IBD in ileum samples, and one for predicting IBD in rectum samples.
 
 Of note: we will need a consistent CV scheme that both models will use. Because we are also downsampling, we will pull out the CV scheme from the first model and apply it to the second (and ensemble).
 
@@ -709,9 +711,9 @@ ggplot(sinai_r_model_mean,
 
 ```
 
-This model is doing what we want it to: predict CD or UC from non-inflamed rectal tissues. 
+This rectum-only model is doing what we want it to: predict CD or UC from non-inflamed rectal tissues. 
 
-Since inflammation in rectal tissue is not specific to CD or UC, we'll build a similar classifier using Ileum samples.
+Since inflammation in rectal tissue is not specific to CD or UC, we'll build a similar classifier using ileum samples.
 
 ```{r, ensemble_ileum, echo=F, results=F, plot=T, warning=F, message=F}
 
@@ -833,9 +835,9 @@ ggplot(sinai_i_model_mean,
 
 ```
 
-This model appears to perform better at predicting CD, which makes sense because inflammation in ileal tissue is generally specific to CD.
+This ileum-only model appears to perform better at predicting CD, which makes sense because inflammation in ileal tissue is generally specific to CD.
 
-Now let's build an ensemble model using a caret extension.
+Now, let's build an ensemble model using a caret extension.
 
 ```{r, ensemble, echo=F, results=F, plot=T, warning=FALSE, message=FALSE}
 
@@ -934,7 +936,7 @@ ggplot(sinai_ensemble_model_mean,
 
 We see the model is near equally sensitive for CD and UC. In other words, it's doing what we wanted this sort of ensemble to do.
 
-## Conclusion
+# Conclusions
 
 There are several reasons why the transcriptome of *non-inflamed* intestinal biopsies could be different between IBD and non-IBD controls. 
 

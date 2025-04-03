@@ -16,13 +16,13 @@ cache = T
 
 [The Segata Lab](http://segatalab.cibio.unitn.it/tools/metaml/index.html) published a [study](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977) in 2016 employing machine learning on microbiomes to predict various diseases, including liver cirrhosis, colorectal cancer, IBD, obesity, and type 2 diabetes.
 
-The stool microbiome [dataset](https://github.com/SegataLab/metaml/tree/master/data) is publicly available.
+The stool microbiome dataaset is available [here](https://github.com/SegataLab/metaml/tree/master/data).
 
-Below, we validate their findings and extend the analysis to employ **Multi-Class Classification** with **downsampling**.
+Below, we validate their findings and extend the analysis to employ **multiclass classification** with **downsampling**.
 
 ## Loading data
 
-Let's load the data and see what type of samples are included:
+Let's load the data and see what types of samples are included:
 
 ```{r load_data, echo=F, results=T, plot=T, warning=F, message=F}
 
@@ -49,7 +49,7 @@ aml_meta[,c("disease")] %>% table() %>%
 
 ```
 
-This is a little messy, so let's clean up the samples into clean categories.
+This is a little messy, so let's clean up the samples into the categories included in the study.
 
 ## Metadata processing
 
@@ -73,10 +73,9 @@ aml_meta[,c("disease")] %>% table() %>%
 
 ```
 
-A small note, but it's unclear which categories of samples contributed to the 981 control samples listed in the original study. I only see 944. As we see later, this slight decrease becomes amplified on a pursuit towards high quality data.
+A small note: it's unclear which categories of samples contributed to the 981 control samples listed in the original study. I only see 944.
 
 Let's also check if there are sample duplicates:
-
 
 ```{r metadata_duplicates_1, echo=F, results=T, plot=T, warning=F, message=F}
 
@@ -93,7 +92,7 @@ aml_meta$subjectID %>% table() %>% data.frame() %>%
 
 ```
 
-Uh oh. That's a notable number of pseudoreplicates. Which condition do they belong to?
+Uh oh. That's a notable number of pseudoreplicates. Which conditions do they belong to?
 
 ```{r metadata_duplicates_2, echo=F, results=T, plot=T, warning=F, message=F}
 
@@ -101,11 +100,11 @@ aml_meta[,c("subjectID","disease")] %>% table() %>% data.frame() %>%
   group_by(disease) %>%
   summarize(sum(Freq>1)) %>% 
   data.frame() %>%
-  `colnames<-`(c("disease", "> 1 replicate"))
+  `colnames<-`(c("disease", ">1 replicate"))
 
 ```
 
-Many of the controls were replicates, which we can spare. However, 66 / 173 of the Crohn's disease samples were replicates, which we'd obviously rather not spare. But we need to if we want to apply machine learning without blatantly overfitting. So, we'll take only the first entry per subject.
+Many of the controls were replicates, which we can spare. However, 66 / 173 of the IBD samples were replicates, which we'd obviously rather not spare. But, we need to if we want to apply machine learning without blatantly overfitting. So, we'll take only the first entry per subject.
 
 Here are the final tallies of samples after removing pseudoreplicates.
 
@@ -116,11 +115,11 @@ aml_meta = aml_meta %>%
   slice_max(sampleID, n=1) %>% data.frame()
 aml_meta[,c("disease")] %>% table() %>% 
   data.frame() %>%
-  `colnames<-`(c("disease", "sample count"))
+  `colnames<-`(c("disease", "samples"))
 
 ```
 
-Alright. Now let's check the ratios of control to cases per study among studies of disease.
+Alright. Now let's check the ratios of controls to cases per study among studies of disease.
 
 ```{r metadata_duplicates_4, echo=F, results=T, plot=T, warning=F, message=F}
 
@@ -141,13 +140,13 @@ aml_meta[,c("studyID", "disease")] %>% table()
 
 
 ```
-Every study of disease also included approximately as many, or more control samples as case samples.
+Every study of disease also included approximately as many, or more, control samples as case samples.
 
 Now let's process the sequencing data.
 
 ## Data processing
 
-Let's extract out the species data, and check out the data distributions.
+Let's extract out the species data and check out the their distributions.
 
 ```{r data_processing_1, echo=F, results=T, plot=T, warning=F, message=F}
 
@@ -210,7 +209,7 @@ aml_taxa_dist_plot_2 <- ggplot(reshape2::melt(as.matrix(aml_taxa)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
   theme_minimal()+
-  labs(x="Relative Abundance", y="Frequency")
+  labs(x="Log2 Relative Abundance", y="Frequency")
   
 saveRDS(aml_taxa_dist_plot_2, "../saved/aml_taxa_dist_plot_2.Rds")
 }
@@ -220,18 +219,19 @@ aml_taxa_dist_plot_2 <- readRDS("../saved/aml_taxa_dist_plot_2.Rds")
 aml_taxa_dist_plot_2
 ```
 
-Log transforming improved the distributions to approximately normal, but still right skewed. Nonetheless, it's appropriate to continue on to building models.
+Log transforming improved the distributions to approximately normal, but still right skewed. Nonetheless, it's looking in acceptable shape to continue on to building models.
 
 ## Model building
 
-The authors approach the machine learning task in a variety of ways:
+The authors approach their task in a number of ways:
+
 *Our multi-level validation strategy includes the assessment of microbiome models on single cohorts, across stages of the same study, across different studies, and across target outcomes and conditions*
 
-I'm interested in validating [Fig 2](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977#pcbi.1004977.ref032), where they calculate a variety of metrics including AUC, for each of the datasets separately. Of note, they evaluate both Random Forest and SVM models. For species-based models, they employed a radial basis kernel.
+I'm interested in validating [Fig 2](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977#pcbi.1004977.ref032), where they calculate a variety of metrics including AUC, for each of the datasets separately. Of note, they evaluate both Random Forest and SVM models. For species-based models, the SVM used a radial basis kernel.
 
-Since they also mention evaluating elastic net, let's go ahead and additional models.
+Since they also mention evaluating elastic net, let's go ahead include it, and a few more models.
 
-They also compared their models against null datasets, where the class label was randomly shuffled.
+They also compared their models against null datasets, where the class label was randomly shuffled. This is helpful to show, statistically, superiority of their model to an empirical null distribution. 
 
 So, we'll do the following:
 
@@ -244,6 +244,8 @@ So, we'll do the following:
 - For both real and null data sets,
 
 - And extract the internal validation AUCs.
+
+Here are the results:
 
 ```{r model_building_1, echo=F, results=F, plot=T, warning=F, message=F}
 
@@ -387,7 +389,7 @@ ggplot()+
 
 ```
 
-This plot shows the distributions of 15 repeats of using real (colored) data and null (grey) data to train each model. I ran a t-test on each comparison followed by a Bonferroni adjustment to control the false discovery rate. Significant values are indicated by a *.
+This plot shows the distributions of 15 repeats of using real (colored) data and null (grey) data to train each model. I ran t-tests on each comparison followed by a Bonferroni adjustment to control the false discovery rate. Significant values are indicated by a *.
 
 Using the internal validation metrics, we can see that random forest (ranger) is generally superior to SVM across datasets. Elastic net (glmnet) is quite competitive with ranger.
 
@@ -395,15 +397,11 @@ We can also get a sense of how some diseases (e.g. obesity) are harder to predic
 
 Importantly, most of these values are either as good or better than those reported in the original study.
 
-Let's consider these results validated and move on to an interesting technique rarely employed in the literature: multi-class machine learning.
+Let's consider these results validated and move on to multiclass machine learning.
 
 # **Extending** the analysis
 
-The it would be ideal to build ONE model that predict each of the various diseases.
-
-We can formulate this in different ways, like a one-vs-all or several one-vs-one classifiers.
-
-Here, I want to demonstrate how a multi-class classifier performs using pooled datasets.
+Above, we constructed 1 predictor for each disease. Depending on the research question, it might be more ideal to build ONE model that can report the probability a microbiome belongs to one of the diseases, simultaneously. This is a task for a multiclass classifier.
 
 ## Multiclass Classifier
 
@@ -502,9 +500,9 @@ aml_multi_rf_conf_plot
 
 ``` 
 
-This confusion matrix illustrates a general low accuracy in predicting each disease. That is, the values in parentheses along the diagonal tiles are quite low for most diseases. The model is predicting most microbiomes belong to healthy individuals.
+This confusion matrix illustrates a general low accuracy in predicting each disease. That is, the values in parentheses along the diagonal tiles (from bottom left to top right) are quite low for most diseases. The model is predicting most microbiomes belong to healthy individuals.
 
-I suspect the massive class imbalance (e.g. n=665 "none" vs n=48 "cancer") is causing the model to bias its prediction towards the overrepresented class. 
+I suspect the large class imbalance (e.g. n=665 "none" vs n=48 "cancer") is causing the model to bias its prediction towards the overrepresented class. 
 
 What do the ROC curves look like?
 
@@ -591,7 +589,7 @@ This ROC curve seems to suggest all diseases are being predicted reasonably well
 
 ## Downsample
 
-Let's downsample these data down to the smallest dataset (n=48). I suspect this will sacrifice accuracy, but improve the false positive rate.
+To eliminate the class imbalance, let's downsample these data down to the smallest dataset (n=48). I suspect this will sacrifice accuracy, while improving the false positive rate.
 
 ```{r, multivariate_rf_loop_balanced, echo=F, results=F, plot=T, warning=F, message=F}
 
@@ -804,10 +802,10 @@ aml_multi_rf_auc_sample_plot
 
 ```
 
-Once again, these ROC curves seem to suggest all diseases are being predicted at least reasonably well. We see that the AUC has shrunk by ~5%. We also see that the model performs most poorly with "None" and "T2D", in agreement with the confusion matrix.
+Once again, these ROC curves seem to suggest all diseases are being predicted at least reasonably well. We see that the AUC has shrunk by ~5%. We also see that the model performs most poorly with "none" and "t2d", in agreement with the confusion matrix.
 
 
-# Conclusion
+# Conclusions
 
 To conclude, we found that microbiome-based classifiers could predict disease quite well, particularly when control samples were confined to each study. 
 
