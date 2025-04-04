@@ -1,0 +1,35 @@
+---
+title: "Overfit Check"
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Overfitting is a common problem in published studies employing machine learning.
+
+This [review article](https://www.nature.com/articles/s41576-021-00434-9) is a great primer on pitfalls in machine learning studies. They discuss distribution differences, dependent samples, confounding, leaky preprocessing, and unbalanced datasets.
+
+Below, I want to describe how a researcher can check for sources of overfitting in their dataset. I will link to examples in workflows on this site.
+
+## Leaky Preprocessing
+
+For data to be "leaky" means that the data used to *evaluate* the performance of the model (**testing** or **validation** data) finds its way into the data used to *build* the model (**training data**).
+
+**Data leakage** in high-dimensional projects can arise from several sources:
+
+- A *technical* variable confounds the biological discriminatory signal. For instance, case samples are consistently sequenced to a deeper degree than control samples, and the predictive model exploits rarely observed features associated with cases strictly due to the deeper sequencing effort. If training and testing data were derived from the sample sequencing run, the resulting model may not be generalizable to other data sets where there was no confounding by sequencing depth. **Optimal solution**: Prevention. Randomly load samples on sequencing platform. **Alternative solution**: Randomly subsample reads to an even depth.
+
+- *Feature selection* is employed using both training and testing/validation data sets. For instance, t-tests are used to select features likely to be discriminatory using the training data, and then a model is built using cross-validation of the same training data. **Optimal solution**: If the data set is sufficiently large, siphon training set samples for feature selection. **Alternative solution**: Select an algorithm that employs embedded feature selection (e.g. lasso, random forest).
+
+- Testing data *literally leaks* into the training data. For instance, a model is constructed using *all* data, which is then used to predict the outcomes of the testing data. This is the most egregious form of overfitting, such that the model has already learned the *exact patterns* in the testing data, and is simply recalling the outcome. There is no interpolation or extrapolation occurring. **Optimal solution**: Review code to ensure testing data is not included in the training data set. There is no alternative.
+
+## Dependent Samples
+
+Many statistical tests assume that samples are independent of each other. 
+
+- Dependent samples (i.e. **pseudoreplicates**) are samples that are dependent on each other for some biological or technical reason. A common type of pseudoreplicate is the *repeat sampling* from the sample subject, either by body site (colon vs small intestine) or longitudinally (baseline vs post-intervention). It is possible and likely that subjects possess a signature common. When the model is trained, it learns this signal, and rather than learning a ruleset that predicts the outcome, it learns a ruleset that predicts the subject. **Optimal solution**: Discard pseudoreplicates, or do not collect them in the first place. **Alternative solution**: Apply stratified cross-validation to include only one replicate per round of CV.
+
+An example of an exception are random effects models, which allow for repeat measures from the sample subject. Most tabular machine learning models cannot account for sample dependence unless cross-validation employs stratifications by subject.
+

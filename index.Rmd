@@ -16,6 +16,8 @@ Its objective is to provide examples of workflows that enable predicting *someth
  - [Predicting IBD (RNAseq)](https://pdobrano25.github.io/ml_website/sinai_validation.html): Re-analyzing a large RNAseq dataset obtained from mucosal biopsies of CD, UC, and non-IBD controls. Focusing on rectum biopsies, applying machine learning to predict inflamed vs non-inflamed samples, and then predicting IBD using non-inflamed samples. *Downsampling* and *ensemble learning* are applied.
  - [Predicting Disease (Microbiome)](https://pdobrano25.github.io/ml_website/metaaml_validation.html): Validating a meta-analysis of microbiome data linked to several different diseases. *Downsampling* and *multiclass learning* are applied, and *additional models* are evaluated.
  
+[**Overfit Check**](https://pdobrano25.github.io/ml_website/overfit_check.html): comments on common sources of poor machine learning engineering leading to **overfitting**.
+
 [**Models**](https://pdobrano25.github.io/ml_website/ml_figures.html): common machine learning algorithms are listed, illustrated, and described.
 
 [**About**](https://pdobrano25.github.io/ml_website/about.html): source code for analyses and a list of publications by Peter Dobranowski.

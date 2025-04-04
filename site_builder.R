@@ -50,6 +50,7 @@ files <- c("index.Rmd",
            "cmd_validation/cmd_validation.Rmd",
            "sinai_validation/sinai_validation.Rmd",
            "metaaml_validation/metaaml_validation.Rmd",   
+           "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
 # Clean output
@@ -74,7 +75,7 @@ for (f in files) {
   )
   
   # Conditionally add navbar (otherwise navbar gets doubled)
-  if (!(basename(f) %in% c("index.Rmd", "about.Rmd"))) {
+  if (!(basename(f) %in% c("index.Rmd","overfitcheck.Rmd", "about.Rmd"))) {
     output_options$includes <- list(before_body = navbar.path)
   }
   
