@@ -21,6 +21,8 @@ navbar:
           href: sinai_validation.html
         - text: "Predicting Disease (Microbiome)"
           href: metaaml_validation.html  
+    - text: "Overfit Check"
+      href: overfitcheck.html
     - text: "Machine Learning Models"
       href: ml_figures.html
     - text: "About"
