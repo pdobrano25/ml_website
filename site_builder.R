@@ -8,6 +8,7 @@ load("2025_03_18_ml_website_image.Renv")
 
 # NOTE: Don't forget to update _site.yml with new pages in navbar
 
+t1 <- Sys.time()
 library(yaml)
 
 # Read the _site.yml file
@@ -86,4 +87,5 @@ for (f in files) {
                     output_options = output_options)
 }
 
-
+t2 <- Sys.time()
+t2-t1
