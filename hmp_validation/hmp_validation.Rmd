@@ -13,11 +13,11 @@ cache = T
 
 # **Validating** the analysis
 
-[The Huttenhower Lab](https://huttenhower.sph.harvard.edu/home/) conducted one of the largest and deepest characterizations of the IBD microbiome, incorporating metagenomics, metatranscriptomics, and metabolomics, published in Nature in 2019, [here](https://www.nature.com/articles/s41564-018-0306-4).
+[The Huttenhower Lab](https://huttenhower.sph.harvard.edu/home/) conducted one of the largest and deepest characterizations of the IBD microbiome, incorporating metagenomics, metatranscriptomics, and metabolomics. [This study](https://www.nature.com/articles/s41564-018-0306-4) was published in Nature in 2019 
 
-Their metabolomics data set has been reprocessed and uploaded by the [Borenstein lab](https://github.com/borenstein-lab), available [here](https://github.com/borenstein-lab/microbiome-metabolome-curated-data/tree/main/data/processed_data/FRANZOSA_IBD_2019). These data were incorporated in a meta-analysis of gut microbiome-metabolome associations [here](https://www.nature.com/articles/s41522-022-00345-5).
+Their metabolomics data set has been reprocessed and uploaded by the [Borenstein lab](https://github.com/borenstein-lab), available [here](https://github.com/borenstein-lab/microbiome-metabolome-curated-data/tree/main/data/processed_data/FRANZOSA_IBD_2019). These data were incorporated in a [meta-analysis](https://www.nature.com/articles/s41522-022-00345-5) of gut microbiome-metabolome associations.
 
-Towards the end of Franzosa's study, they use Random Forest to classify IBD using metabolites, achieving an AUC of 0.92 using 5-fold cross-validation. Here, we attempt to validate this result.
+Towards the end of Franzosa's study, they use Random Forest to classify IBD and non-IBD microbiomes using metabolites, achieving an AUC of 0.92 using 5-fold cross-validation. Here, we attempt to validate this results.
 
 ## Loading data
 
@@ -42,7 +42,7 @@ How many of the 8848 features were annotated?
 ```{r load_metabolite_annotated, echo=F, results=T, plot=T, warning=F, message=F}
 
 # view annotated features
-colnames(hmp_data)[!grepl("\\: NA", colnames(hmp_data))] %>% length()
+#colnames(hmp_data)[!grepl("\\: NA", colnames(hmp_data))] %>% length()
 
 # count percentage of annotated features
 print(paste0(sum(!grepl("\\: NA", colnames(hmp_data))), " features are annotated (",
@@ -269,7 +269,7 @@ hmp_train_auc_plot | hmp_test_auc_plot
 
 ```
 
-These values (0.903 and 0.854) are close, but slightly lower than reported in the original study (0.92 and 0.89)
+These values (0.903 and 0.910) are close to those reported in the original study (0.92 and 0.89)
 
 Now we can extend the analysis and apply additional models, under the hypothesis that random forest was suboptimal for this data set.
 
@@ -440,12 +440,12 @@ ggplot(hmp_feature_imp %>% arrange(-Overall),
   scale_fill_gradient2(high=scales::muted("red"),
                        mid="white",
                        low=scales::muted("blue"))+
-  labs(x="log fold change", y="feature importance")+
+  labs(x="Log Fold Change", y="Feature Importance")+
   theme_minimal()+theme(legend.position="none")
 
 ```
 
-Interestingly, the most important feature for discriminating IBD from controls was *urobilin*. Urobilin was found to be significantly decreased in IBD in another [cohort](https://pmc.ncbi.nlm.nih.gov/articles/PMC10359577/) in 2023, and validated [again](https://gut.bmj.com/content/73/8/1392) by a separate research group. Interestingly, reduced microbial bilirubin metabolism is a marker of IBD and previous antibiotic use [source](https://www.nature.com/articles/s41564-023-01549-x), which is also strongly associated with IBD.
+Interestingly, the most important feature for discriminating IBD from controls was *urobilin*. Urobilin was found to be significantly decreased in IBD in another [cohort](https://pmc.ncbi.nlm.nih.gov/articles/PMC10359577/) in 2023, and validated [again](https://gut.bmj.com/content/73/8/1392) by a separate research group. Interestingly, reduced microbial bilirubin metabolism is a marker of IBD and previous antibiotic use ([source](https://www.nature.com/articles/s41564-023-01549-x)).
 
 # Conclusions
 
