@@ -51,6 +51,7 @@ files <- c("index.Rmd",
            "cmd_validation/cmd_validation.Rmd",
            "sinai_validation/sinai_validation.Rmd",
            "metaaml_validation/metaaml_validation.Rmd",   
+           "hmp_validation/hmp_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
@@ -88,4 +89,4 @@ for (f in files) {
 }
 
 t2 <- Sys.time()
-t2-t1
+t2-t1 # Apr 4 2025 = 11.5 min

@@ -1602,6 +1602,9 @@ border-radius: 0px;
     <li>
       <a href="metaaml_validation.html">Predicting Disease (Microbiome)</a>
     </li>
+    <li>
+      <a href="metaaml_validation.html">Predicting IBD (Metabolome)</a>
+    </li>
   </ul>
 </li>
 <li>
@@ -1638,8 +1641,8 @@ They discuss distribution differences, dependent samples, confounding,
 leaky preprocessing, and unbalanced data sets.</p>
 <p>Below, I want to describe how a researcher can check for sources of
 overfitting in their data set.</p>
-<div id="leaky-preprocessing" class="section level2">
-<h2>Leaky Preprocessing</h2>
+<div id="data-leakage" class="section level2">
+<h2>Data Leakage</h2>
 <p>For data to be “leaky” means that the data used to <em>evaluate</em>
 the performance of the model (<strong>testing</strong> or
 <strong>validation</strong> data) finds its way into the data used to
@@ -1675,8 +1678,8 @@ the outcome. There is no interpolation or extrapolation occurring.
 not included in the training data set. There is no alternative.</p></li>
 </ul>
 </div>
-<div id="dependent-samples" class="section level2">
-<h2>Dependent Samples</h2>
+<div id="pseudoreplicates" class="section level2">
+<h2>Pseudoreplicates</h2>
 <p>Many statistical tests assume that samples are independent of each
 other.</p>
 <ul>

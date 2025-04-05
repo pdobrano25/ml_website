@@ -1,0 +1,454 @@
+---
+title: "Predicting IBD (Metabolome)"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library("dplyr")
+library("ggplot2")
+
+cache = T
+
+```
+
+# **Validating** the analysis
+
+[The Huttenhower Lab](https://huttenhower.sph.harvard.edu/home/) conducted one of the largest and deepest characterizations of the IBD microbiome, incorporating metagenomics, metatranscriptomics, and metabolomics, published in Nature in 2019, [here](https://www.nature.com/articles/s41564-018-0306-4).
+
+Their metabolomics data set has been reprocessed and uploaded by the [Borenstein lab](https://github.com/borenstein-lab), available [here](https://github.com/borenstein-lab/microbiome-metabolome-curated-data/tree/main/data/processed_data/FRANZOSA_IBD_2019). These data were incorporated in a meta-analysis of gut microbiome-metabolome associations [here](https://www.nature.com/articles/s41522-022-00345-5).
+
+Towards the end of Franzosa's study, they use Random Forest to classify IBD using metabolites, achieving an AUC of 0.92 using 5-fold cross-validation. Here, we attempt to validate this result.
+
+## Loading data
+
+Let's load the metabolite feature table and check the dimensions:
+
+```{r load_metabolite_counts, echo=F, results=T, plot=T, warning=F, message=F}
+
+# load stool metabolome data
+hmp_data = read.csv("../hmp_validation/mtb.tsv", sep="\t", 
+                    check.names=F) # added to avoid losing special characters in colnames
+rownames(hmp_data) = hmp_data$Sample
+hmp_data$Sample = NULL
+
+print(paste(dim(hmp_data)[1], " samples by ", dim(hmp_data)[2], " features", sep=""))
+
+```
+
+Since the metabolomics were performed untargeted, most of the features might not be annotated.
+
+How many of the 8848 features were annotated?
+
+```{r load_metabolite_annotated, echo=F, results=T, plot=T, warning=F, message=F}
+
+# view annotated features
+colnames(hmp_data)[!grepl("\\: NA", colnames(hmp_data))] %>% length()
+
+# count percentage of annotated features
+print(paste0(sum(!grepl("\\: NA", colnames(hmp_data))), " features are annotated (",
+            round(sum(!grepl("\\: NA", colnames(hmp_data))) / ncol((hmp_data)), digits=2)*100, "%)", sep=""))
+
+```
+
+Let's keep just these 466 features, which is a good feature space for machine learning, and renders a more interpretable conclusion when we look for important features.
+
+```{r load_metabolite_map, echo=F, results=F, plot=T, warning=F, message=F} 
+
+# molecule map
+hmp_molecules = read.csv("../hmp_validation/mtb.map.tsv", sep="\t")
+# likely not needed
+
+```
+
+Now let's check the sample data.
+
+First, how many samples are in the original data set, and how many in the external validation sets?
+
+```{r load_mapping, echo=F, results=T, plot=T, warning=F, message=F}
+
+hmp_metadata = read.csv("../hmp_validation/metadata.tsv", sep="\t")
+head(hmp_metadata)
+
+# extract out data set
+hmp_metadata$data = ifelse(grepl("PRISM", hmp_metadata$Sample), "Training", "Validation")
+
+hmp_metadata[,c("data", "Study.Group")] %>% table() %>% 
+  data.frame() %>%
+  `colnames<-`(c("dataset", "disease", "samples")) %>%
+  arrange(dataset)
+
+```
+
+We'll be working with 34 control, 53 UC, and 68 CD samples to build the model, which is a bit of an imbalance worth correcting for. It's made worse by the fact we'll be pooling UC and CD together. The validation dataset was originally nicely balanced between n=20-23 per group, but these will also become imbalanced after pooling UC and CD.
+
+Lastly, let's check for pseudoreplicates:
+
+```{r check_pseudoreplicates, echo=F, results=F, plot=T, warning=F, message=F}
+
+hmp_metadata[,c("Subject")] %>% table() %>% data.frame() %>%
+  ggplot()+
+  ggridges::geom_density_ridges(aes(x=Freq, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(title = "Sample Replicates",
+       x = "Number of Samples per Subject",
+       y="Frequency")
+
+```
+
+Great! There are no repeat samplings of any subject.
+
+## Data processing
+
+Now we can check the feature distributions.
+
+```{r check_distributions, echo=F, results=T, plot=T, warning=F, message=F}
+
+# subset to annotated metabolites
+hmp_data_an = hmp_data[,!grepl("\\: NA", colnames(hmp_data))]
+
+hmp_met_dist_plot = ggplot(reshape2::melt(as.matrix(hmp_data_an)))+
+  ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(x="Abundance", y="Frequency")
+hmp_met_dist_plot
+
+```
+
+Based on the x axis scale, I suspect these data are profoundly right-skewed and are asking to be log-transformed. Let's see what happens. We'll also need to add a pseudocount because of the 0's.
+
+```{r check_distributions_log, echo=F, results=T, plot=T, warning=F, message=F}
+
+# subset to annotated metabolites
+hmp_pseudo = min(hmp_data_an[hmp_data_an!=0])/2
+
+hmp_data_an = log(hmp_data_an+hmp_pseudo, base=2)
+
+hmp_met_dist_plot_log = ggplot(reshape2::melt(as.matrix(hmp_data_an)))+
+  ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(x="Log Abundance", y="Frequency")
+hmp_met_dist_plot_log
+
+```
+
+These look way better. Let's move on to building our models and validating them using internal CV.
+
+## Model building
+
+Franzosa employed 5x cross-validated random forest to predict IBD, achieving an AUC of 0.92. 
+The authors specify the following:
+
+*labels were randomly balanced before training and 100 trees were considered*
+
+So, we'll employ downsampling and specify 100 trees per random forest.
+
+```{r randomforest_internal,  echo=F, results=T, plot=T, warning=F, message=F}
+
+# finalize input dataset
+
+# append class label
+hmp_data_an$disease = hmp_metadata[match(rownames(hmp_data_an), hmp_metadata$Sample),]$Study.Group
+# convert CD and UC to IBD
+hmp_data_an$disease = ifelse(hmp_data_an$disease == "Control", "Control", "IBD")
+# make a factor
+hmp_data_an$disease = factor(hmp_data_an$disease, levels=c("Control", "IBD"))
+
+hmp_internal = hmp_data_an[subset(hmp_metadata, data=="Training")$Sample,]
+
+# build one random forest model
+
+if(cache == F){
+  
+set.seed(25)
+hmp_train = caret::train(
+  disease ~ .,
+  data = hmp_internal,
+  trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary,
+                                  sampling = "down"),
+  num.trees = 100,
+  importance = 'permutation',
+  metric = "ROC",
+  method = "ranger",
+  preProc = c("center", "scale")
+)
+saveRDS(hmp_train, "../saved/hmp_train.Rds")
+}
+
+hmp_train = readRDS("../saved/hmp_train.Rds")
+
+```
+
+```{r randomforest_internal_aucs,  echo=F, results=T, plot=T, warning=F, message=F}
+
+# extract AUC and ROC curve for internal
+
+# select the final model
+hmp_train_best = subset(hmp_train$pred, 
+                        mtry == hmp_train$bestTune$mtry & 
+                        min.node.size == hmp_train$bestTune$min.node.size &
+                        splitrule == as.character(hmp_train$bestTune$splitrule))
+
+# build ROC curve
+hmp_train_roc <- pROC::roc(hmp_train_best$obs, hmp_train_best$IBD, levels = levels(hmp_train_best$obs))
+# convert ROC Curve to Data Frame
+hmp_train_roc_df <- data.frame(
+  specificity = (hmp_train_roc$specificities),
+  sensitivity = hmp_train_roc$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+hmp_train_ci <- pROC::ci.se(hmp_train_roc, specificities = seq(0, 1, l = 100), boot.n = 2000)
+hmp_train_ci = data.frame(hmp_train_ci)
+colnames(hmp_train_ci) = c("lower", "mean", "upper")
+hmp_train_ci$spec = seq(0, 1, l = 100)
+
+# plot using ggplot2
+hmp_train_auc_plot = ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = hmp_train_ci, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = hmp_train_roc_df, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Training\nROC Curve with 95% CI", " (AUC: ", round(hmp_train_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+
+```
+
+```{r randomforest_external_aucs,  echo=F, results=T, plot=T, warning=F, message=F}
+
+# apply model to validation data
+
+hmp_external_data =  hmp_data_an[subset(hmp_metadata, data!="Training")$Sample,]
+
+# apply prediction
+hmp_test_pred = predict(hmp_train,
+                        hmp_external_data,
+                        type="prob")
+
+# build ROC curve
+hmp_test_roc <- pROC::roc(hmp_external_data$disease, hmp_test_pred$IBD, levels = levels(hmp_external_data$disease))
+# convert ROC Curve to Data Frame
+hmp_test_roc_df <- data.frame(
+  specificity = (hmp_test_roc$specificities),
+  sensitivity = hmp_test_roc$sensitivities
+) %>% arrange((sensitivity))
+
+# calculate 95% confidence interval
+hmp_test_ci <- pROC::ci.se(hmp_test_roc, specificities = seq(0, 1, l = 100), boot.n = 2000)
+hmp_test_ci = data.frame(hmp_test_ci)
+colnames(hmp_test_ci) = c("lower", "mean", "upper")
+hmp_test_ci$spec = seq(0, 1, l = 100)
+
+# plot using ggplot2
+hmp_test_auc_plot = ggplot() +  
+  # 95% Confidence Interval as a shaded region
+  geom_ribbon(data = hmp_test_ci, aes(x = rev(spec), ymin = lower, ymax = upper), 
+              fill = "blue", alpha = 0.2) +
+  # ROC Curve
+  geom_line(data = hmp_test_roc_df, aes(x = 1-specificity, y = sensitivity), color = "black", size = 1) +
+
+  # Add diagonal reference line (random classifier)
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  # Labels and theme
+  labs(title = paste("Testing\nROC Curve with 95% CI", " (AUC: ", round(hmp_test_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  theme_bw()
+
+# plot both
+hmp_train_auc_plot | hmp_test_auc_plot
+
+```
+
+These values (0.903 and 0.854) are close, but slightly lower than reported in the original study (0.92 and 0.89)
+
+Now we can extend the analysis and apply additional models, under the hypothesis that random forest was suboptimal for this data set.
+
+# **Extending** the analysis
+
+We'll conduct 15 iterations of 5x CV and report AUCs from internal and external data sets. We'll continue to apply downsampling.
+
+```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+# select models
+ml.models = c("gbm","glmnet","ranger","svmLinear","svmRadial","xgbTree")
+```
+
+```{r model_loop,  echo=F, results=T, plot=T, warning=F, message=F}
+
+# loop through models
+if(cache == F){
+  
+  t1 <- Sys.time()
+hmp_auc_loop = do.call(rbind, lapply(1:15, function(seed){
+  do.call(rbind, lapply(ml.models, function(algo){
+    do.call(rbind, lapply(c("real", "null"), function(type){
+       # run RF
+      print(paste0(seed, " ", algo, " ", type))
+      
+      # check data type
+      if(type == "real"){
+      data_selected = hmp_internal
+      }
+      if(type == "null"){
+        data_selected = hmp_internal
+          set.seed(seed)
+        data_selected$disease = sample(data_selected$disease)
+      }
+      
+  set.seed(seed)
+  hmp_model = caret::train(
+    disease ~ .,
+    data = data_selected,
+    trControl = caret::trainControl(method="cv", 
+                                  number = 5,
+                                  savePredictions = TRUE,
+                                  classProbs = TRUE,
+                                  summaryFunction = caret::twoClassSummary,
+                                  sampling = "down"),
+    metric = "ROC",
+    method = algo,
+    preProc = c("center", "scale")
+  ) %>% suppressWarnings() %>% suppressMessages()
+  
+  # calculate internal AUC
+  hmp_internal_roc <- max(hmp_model$results$ROC)
+  
+  # apply model to external data
+  hmp_model_test = predict(hmp_model, hmp_external_data, type="prob")
+
+  # build ROC curve
+  hmp_external_roc <- pROC::roc(hmp_external_data$disease, hmp_model_test$IBD, levels = levels(hmp_external_data$disease))
+  
+  # collate into data.frame
+  data.frame(model = algo,
+             iter = seed,
+             internal_auc = hmp_internal_roc,
+             external_auc = as.numeric(hmp_external_roc$auc),
+             datatype = type)
+  
+}))
+}))
+}))
+t2 <- Sys.time()
+t2 - t1 # 1 hour
+saveRDS(hmp_auc_loop, "../saved/hmp_auc_loop.Rds")
+
+}
+
+hmp_auc_loop = readRDS("../saved/hmp_auc_loop.Rds")
+
+
+# make long df
+hmp_auc_loop_df = reshape::melt(hmp_auc_loop, 
+                     id=c("model","iter","datatype"),
+                     variable.name = c("internal_auc", "external_auc"))
+
+
+hmp_auc_ttest_df = do.call(rbind, lapply(ml.models, function(algo){
+    print(paste(algo))
+  
+    data.subset = hmp_auc_loop_df %>% distinct() %>% subset(model == algo)
+    
+    ttest_internal_auc_result = t.test(subset(data.subset, datatype == "real" & variable == "internal_auc")$value,
+           subset(data.subset, datatype == "null" & variable == "internal_auc")$value)$p.value
+    
+    ttest_external_auc_result = t.test(subset(data.subset, datatype == "real" & variable == "internal_auc")$value,
+           subset(data.subset, datatype == "null" & variable == "internal_auc")$value)$p.value
+    
+    data.frame(model = algo,
+               internal_auc = ttest_internal_auc_result,
+               external_auc = ttest_external_auc_result)
+    
+  })) %>% reshape2::melt() %>%
+  mutate(padj = p.adjust(value, method="bonferroni")) %>%
+  mutate(sig = ifelse(padj < 0.05, "*", NA))
+
+
+# extract median value
+hmp_auc_loop_median = hmp_auc_loop_df %>%
+  group_by(model, datatype,variable) %>%
+  mutate(med.val = median(value)) %>% 
+  dplyr::select(model,datatype,variable,med.val) %>% distinct()
+
+ggplot()+
+  geom_violin(data=subset(hmp_auc_loop_df, datatype=="null"), aes(x = model, y=value), fill="grey",color=NA, alpha=0.6)+
+  geom_violin(data=subset(hmp_auc_loop_df, datatype=="real"), aes(x = model, y=value, fill=model), alpha=0.6)+
+  geom_point(data=subset(hmp_auc_loop_median, datatype=="real"), 
+             aes(x =  model, y=med.val, fill= model), shape=21, size=1.5)+
+  geom_text(data=hmp_auc_ttest_df, aes(x=model, Inf, label=sig), vjust=1.2)+
+  scale_y_continuous(breaks=seq(0.3,1, by=0.1))+
+  theme_bw()+theme(legend.position="none",
+                           axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
+  facet_wrap(~variable)+
+  labs(x="Model", y="AUC")
+
+```
+
+All models are significantly superior to a model trained on null data.
+
+Random forest is slightly suboptimal for the internal validation, but optimal for external validation, which suggests we've avoided overfitting.
+
+## Feature importances
+
+Despite testing additional models, we haven't learned anything new from the data.
+
+Instead, we can assess feature importances to see which metabolites drive differences between IBD and controls.
+
+Let's go back to the originally trained model and extract feature importances.
+
+```{r, feature_importance, echo=F, results=T, plot=T, warning=F, message=F}
+
+# extract feature importance
+hmp_feature_imp = varImp(hmp_train)$importance %>%
+  data.frame() %>%
+  # add feature name
+  mutate(feature = gsub("`", "", row.names(.))) %>%
+  # clean feature name
+  mutate(clean_feature = gsub(".*: ", "", feature))
+
+# associate with IBD; calculate LFC
+hmp_feature_lfc = do.call(rbind, lapply(1:ncol(hmp_data_an[colnames(hmp_data_an) != "disease"]), function(x){
+  #x = 1
+  data.subset = data.frame(feature = hmp_data_an[,x],
+                           disease = hmp_data_an$disease)
+  
+  lm.output = lm(feature ~ disease, data.subset) %>% summary() %>% coef()
+  data.frame(feature = colnames(hmp_data_an)[x],
+             lfc = lm.output[2,1])
+}))
+hmp_feature_lfc
+
+# merge
+hmp_feature_imp = merge(hmp_feature_imp,
+                        hmp_feature_lfc, by="feature")
+
+# plot
+ggplot(hmp_feature_imp %>% arrange(-Overall),
+       aes(x=lfc, y=Overall))+
+  geom_point(shape=21, aes(fill=lfc, size=Overall))+
+  ggrepel::geom_label_repel(data = subset(hmp_feature_imp, Overall > 50),
+                           aes(x=lfc, y=Overall, label=clean_feature), size=3)+
+  scale_fill_gradient2(high=scales::muted("red"),
+                       mid="white",
+                       low=scales::muted("blue"))+
+  labs(x="log fold change", y="feature importance")+
+  theme_minimal()+theme(legend.position="none")
+
+```
+
+Interestingly, the most important feature for discriminating IBD from controls was *urobilin*. Urobilin was found to be significantly decreased in IBD in another [cohort](https://pmc.ncbi.nlm.nih.gov/articles/PMC10359577/) in 2023, and validated [again](https://gut.bmj.com/content/73/8/1392) by a separate research group. Interestingly, reduced microbial bilirubin metabolism is a marker of IBD and previous antibiotic use [source](https://www.nature.com/articles/s41564-023-01549-x), which is also strongly associated with IBD.
+
+# Conclusions
+
+To conclude, we were able to validate Franzosa's metabolome-based IBD classifier, seeing no significant improvement when using other machine learning models. By extracting feature importances, we found urobilin to be the top predictor of disease, which is highly accordant with the literature.
+
+

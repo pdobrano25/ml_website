@@ -13,7 +13,7 @@ This [review article](https://www.nature.com/articles/s41576-021-00434-9) is a g
 
 Below, I want to describe how a researcher can check for sources of overfitting in their data set.
 
-## Leaky Preprocessing
+## Data Leakage
 
 For data to be "leaky" means that the data used to *evaluate* the performance of the model (**testing** or **validation** data) finds its way into the data used to *build* the model (**training data**).
 
@@ -25,7 +25,7 @@ For data to be "leaky" means that the data used to *evaluate* the performance of
 
 - Testing data *literally leaks* into the training data. For instance, a model is constructed using *all* data, which is then used to predict the outcomes of the testing data. This is the most egregious form of overfitting, such that the model has already learned the *exact patterns* in the testing data, and is simply recalling the outcome. There is no interpolation or extrapolation occurring. **Optimal solution**: Review code to ensure testing data is not included in the training data set. There is no alternative.
 
-## Dependent Samples
+## Pseudoreplicates
 
 Many statistical tests assume that samples are independent of each other. 
 
