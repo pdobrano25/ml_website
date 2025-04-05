@@ -225,7 +225,8 @@ table(sinai_meta[,c("Location", "Status", "Disease")]) %>% data.frame() %>%
   head() %>%
   `colnames<-`(c("Location", "Status", "Disease", "Samples",
                  "Samples per Location",
-                 "Samples per Location per Disease"))
+                 "Samples per Location per Disease",
+                 "Samples Per Location per Disease per Status"))
 
 
 ```

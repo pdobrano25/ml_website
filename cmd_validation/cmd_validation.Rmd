@@ -80,7 +80,7 @@ table(cmd_samples[,c("study_name", "study_condition")])
 
 We can see some fairly large imbalances in the data sets. The authors downsampled the larger class until the imbalance was closer to "1:2 to 1:3". It appears that they performed this balancing once, and discarded the rest of the data from the analyses thereafter.
 
-Instead of doing this (because we can't fully replicate their results without knowing which samples they discarded), we will evaluate the impact of balancing using an algorithm called **SCUT** [(SMOTE and Cluster-based Undersampling)](https://www.scitepress.org/Link.aspx?doi=10.5220/0005595502260234)
+Instead of doing this (because we can't fully replicate their results without knowing which samples they discarded), we will evaluate the impact of balancing using an algorithm called **SCUT** [(SMOTE and Cluster-based Undersampling)](https://www.scitepress.org/Link.aspx?doi=10.5220/0005595502260234).
 
 Ning used Random Forest, which we will use to evaluate LOCO AUC.
 
@@ -331,7 +331,7 @@ nie_hmp
   
 ```
 
-These AUCs are less impressive than what were originally published [See Fig2G](https://www.nature.com/articles/s41467-023-42788-0/figures/2)
+These AUCs are less impressive than what were originally published [See Figure 2G](https://www.nature.com/articles/s41467-023-42788-0/figures/2).
 
 # Performances
 
