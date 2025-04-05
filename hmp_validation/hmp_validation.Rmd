@@ -81,7 +81,7 @@ hmp_metadata[,c("data", "Study.Group")] %>% table() %>%
 
 We'll be working with 34 control, 53 UC, and 68 CD samples to build the model, which is a bit of an imbalance worth correcting for. It's made worse by the fact we'll be pooling UC and CD together. The validation dataset was originally nicely balanced between n=20-23 per group, but these will also become imbalanced after pooling UC and CD.
 
-Lastly, let's check for pseudoreplicates:
+Lastly, let's check for [pseudoreplicates](https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates):
 
 ```{r check_pseudoreplicates, echo=F, results=F, plot=T, warning=F, message=F}
 
@@ -220,7 +220,7 @@ hmp_train_auc_plot = ggplot() +
   # Add diagonal reference line (random classifier)
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
-  labs(title = paste("Training\nROC Curve with 95% CI", " (AUC: ", round(hmp_train_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  labs(title = paste("ROC Curve with 95% CI\nTraining (AUC: ", round(hmp_train_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
   theme_bw()
 
 ```
@@ -261,7 +261,7 @@ hmp_test_auc_plot = ggplot() +
   # Add diagonal reference line (random classifier)
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
-  labs(title = paste("Testing\nROC Curve with 95% CI", " (AUC: ", round(hmp_test_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
+  labs(title = paste("ROC Curve with 95% CI\nTesting (AUC: ", round(hmp_test_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
   theme_bw()
 
 # plot both

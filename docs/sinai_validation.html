@@ -1752,9 +1752,9 @@ have not seen tested before:</p>
 trained on the rectum and one trained on the ileum) diagnose IBD from
 controls <em>in the absence of inflammation</em> ?</p>
 <p>To review, we’ve limited the dataset patients with matching ileum and
-rectum samples. We’ve removed pseudoreplicates, such that each patient
-is only represented once. Lastly, we’ve filtered out low variance and
-highly correlated (R &gt; 0.70) features.</p>
+rectum samples. We’ve removed <a href="https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates">pseudoreplicates</a>,
+such that each patient is only represented once. Lastly, we’ve filtered
+out low variance and highly correlated (R &gt; 0.70) features.</p>
 <p>Now we can continue on to building the ensemble. We’ll build separate
 classifiers: one for predicting IBD in ileum samples, and one for
 predicting IBD in rectum samples.</p>

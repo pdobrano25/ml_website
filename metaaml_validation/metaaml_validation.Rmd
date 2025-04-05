@@ -92,7 +92,7 @@ aml_meta$subjectID %>% table() %>% data.frame() %>%
 
 ```
 
-Uh oh. That's a notable number of pseudoreplicates. Which conditions do they belong to?
+Uh oh. That's a notable number of [pseudoreplicates](https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates). Which conditions do they belong to?
 
 ```{r metadata_duplicates_2, echo=F, results=T, plot=T, warning=F, message=F}
 
