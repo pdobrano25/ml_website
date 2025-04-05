@@ -67,7 +67,7 @@ First, how many samples are in the original data set, and how many in the extern
 ```{r load_mapping, echo=F, results=T, plot=T, warning=F, message=F}
 
 hmp_metadata = read.csv("../hmp_validation/metadata.tsv", sep="\t")
-head(hmp_metadata)
+# head(hmp_metadata)
 
 # extract out data set
 hmp_metadata$data = ifelse(grepl("PRISM", hmp_metadata$Sample), "Training", "Validation")
@@ -102,7 +102,7 @@ Great! There are no repeat samplings of any subject.
 
 Now we can check the feature distributions.
 
-```{r check_distributions, echo=F, results=T, plot=T, warning=F, message=F}
+```{r check_distributions, echo=F, results=F, plot=T, warning=F, message=F}
 
 # subset to annotated metabolites
 hmp_data_an = hmp_data[,!grepl("\\: NA", colnames(hmp_data))]
@@ -118,7 +118,7 @@ hmp_met_dist_plot
 
 Based on the x axis scale, I suspect these data are profoundly right-skewed and are asking to be log-transformed. Let's see what happens. We'll also need to add a pseudocount because of the 0's.
 
-```{r check_distributions_log, echo=F, results=T, plot=T, warning=F, message=F}
+```{r check_distributions_log, echo=F, results=F, plot=T, warning=F, message=F}
 
 # subset to annotated metabolites
 hmp_pseudo = min(hmp_data_an[hmp_data_an!=0])/2
@@ -145,7 +145,7 @@ The authors specify the following:
 
 So, we'll employ downsampling and specify 100 trees per random forest.
 
-```{r randomforest_internal,  echo=F, results=T, plot=T, warning=F, message=F}
+```{r randomforest_internal, echo=F, results=F, plot=T, warning=F, message=F}
 
 # finalize input dataset
 
@@ -185,7 +185,7 @@ hmp_train = readRDS("../saved/hmp_train.Rds")
 
 ```
 
-```{r randomforest_internal_aucs,  echo=F, results=T, plot=T, warning=F, message=F}
+```{r randomforest_internal_aucs,  echo=F, results=F, plot=T, warning=F, message=F}
 
 # extract AUC and ROC curve for internal
 
@@ -225,7 +225,7 @@ hmp_train_auc_plot = ggplot() +
 
 ```
 
-```{r randomforest_external_aucs,  echo=F, results=T, plot=T, warning=F, message=F}
+```{r randomforest_external_aucs,  echo=F, results=F, plot=T, warning=F, message=F}
 
 # apply model to validation data
 
@@ -277,12 +277,12 @@ Now we can extend the analysis and apply additional models, under the hypothesis
 
 We'll conduct 15 iterations of 5x CV and report AUCs from internal and external data sets. We'll continue to apply downsampling.
 
-```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+```{r, select_models, echo=F, results=FALSE, warning=FALSE, message=FALSE}
 # select models
 ml.models = c("gbm","glmnet","ranger","svmLinear","svmRadial","xgbTree")
 ```
 
-```{r model_loop,  echo=F, results=T, plot=T, warning=F, message=F}
+```{r model_loop,  echo=F, results=F, plot=T, warning=F, message=F}
 
 # loop through models
 if(cache == F){
@@ -405,7 +405,7 @@ Instead, we can assess feature importances to see which metabolites drive differ
 
 Let's go back to the originally trained model and extract feature importances.
 
-```{r, feature_importance, echo=F, results=T, plot=T, warning=F, message=F}
+```{r, feature_importance, echo=F, results=F, plot=T, warning=F, message=F}
 
 # extract feature importance
 hmp_feature_imp = varImp(hmp_train)$importance %>%

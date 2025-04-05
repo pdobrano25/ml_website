@@ -425,7 +425,7 @@ Let's re-run this pipeline using different machine learning models.
 We'll use common models included in caret:
 linear models like **elastic net**, **support vector machines**, tree-based models like **random forest**, **gradient boosting machine**, and the original: **XGBoost**.
 
-```{r, select_models, echo=T, results=FALSE, warning=FALSE, message=FALSE}
+```{r, select_models, echo=F, results=FALSE, warning=FALSE, message=FALSE}
 # select models
 ml.models = c("gbm","glmnet","lm","ranger","svmLinear","svmRadial","xgbTree")
 ```
@@ -513,7 +513,7 @@ model.loop.pearson = do.call(rbind, lapply(1:15, function(seed) {
   }))}))
 ```
 
-```{r, plot_loop_models_time}
+```{r, plot_loop_models_time, echo=FALSE, results=FALSE, plot=T, warning=FALSE, message=FALSE}
 # check how long each model takes to build
 ggplot(model.loop[,c("iter", "model", "time")] %>% distinct())+
   geom_boxplot(aes(x = model, y=time))+
@@ -529,7 +529,7 @@ This took about 45 minutes to run.
 
 Next, lets check the internal validation *RMSE*, the loss function caret uses to select the optimal hyperparameters.
 
-```{r, plot_loop_models_rmse}
+```{r, plot_loop_models_rmse , echo=FALSE, results=FALSE, plot=T, warning=FALSE, message=FALSE}
 ggplot(model.loop[,c("iter", "model", "internal.rmse")] %>% distinct())+
   geom_boxplot(aes(x = model, y=internal.rmse))+
   geom_point(aes(x =  model, y=internal.rmse), size=2.5, color="black")+
@@ -543,7 +543,7 @@ From the internal validation data (based on how caret selects optimal models), i
 
 Now we will evaluate the performance by calculating the Pearson correlation coefficients for each model and each iteration.
 
-```{r, plot_loop_models_pearson}
+```{r, plot_loop_models_pearson, echo=FALSE, results=FALSE, plot=T, warning=FALSE, message=FALSE}
 # plot pearson values
 model.loop.pearson.plot = ggplot(model.loop.pearson)+
   geom_boxplot(aes(x = model, y=pearson))+
