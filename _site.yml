@@ -11,15 +11,15 @@ navbar:
       href: index.html
     - text: "Projects"
       menu:
-        - text: "Microbial Load Predictor"
+        - text: "Predicting Microbial Load (16S)"
           href: mlp_validation.html
-        - text: "Predicting Crohn's Disease (Microbiome)"
+        - text: "Predicting Crohn's Disease (Metagenome)"
           href: gevers_validation.html
-        - text: "Predicting IBD (Microbiome)"
+        - text: "Predicting IBD (Metagenome)"
           href: cmd_validation.html
         - text: "Predicting IBD (RNAseq)"
           href: sinai_validation.html
-        - text: "Predicting Disease (Microbiome)"
+        - text: "Predicting Disease (Metagenome)"
           href: metaaml_validation.html  
         - text: "Predicting IBD (Metabolome)"
           href: hmp_validation.html  
