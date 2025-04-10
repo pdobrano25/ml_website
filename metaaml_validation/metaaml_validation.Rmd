@@ -1,5 +1,5 @@
 ---
-title: "Predicting Disease (Microbiome)"
+title: "Predicting Disease (Metagenome)"
 ---
 
 

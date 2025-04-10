@@ -1,5 +1,5 @@
 ---
-title: "Microbial Load Predictor"
+title: "Microbial Load Predictor (16S)"
 
 ---
 

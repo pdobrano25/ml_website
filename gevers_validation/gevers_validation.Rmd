@@ -1,5 +1,5 @@
 ---
-title: "Predicting Crohn's Disease (Microbiome)"
+title: "Predicting Crohn's Disease (16S)"
 ---
 
 ```{r setup, include=FALSE}

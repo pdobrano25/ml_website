@@ -476,6 +476,9 @@ display: none;
     <li>
       <a href="hmp_validation.html">Predicting IBD (Metabolome)</a>
     </li>
+    <li>
+      <a href="muller_validation.html">Predicting metabolites (Metagenome)</a>
+    </li>
   </ul>
 </li>
 <li>
@@ -513,18 +516,18 @@ provided based on existing publications by other research groups. In
 most cases, analyses are validated and extended.</p>
 <ul>
 <li><a href="https://pdobrano25.github.io/ml_website/mlp_validation.html">Microbial
-Load Predictor</a>: Validating the performance of a novel tool that
-predicts the number of bacterial cells in a metagenomic sample. A
-regression problem with internal and external validation. <em>Additional
-models</em> are evaluated.</li>
+Load Predictor (16S)</a>: Validating the performance of a novel tool
+that predicts the number of bacterial cells in a metagenomic sample. A
+<em>regression problem</em> with internal and external validation.
+<em>Additional models</em> are evaluated.</li>
 <li><a href="https://pdobrano25.github.io/ml_website/gevers_validation.html">Predicting
-Crohn’s Disease (Microbiome)</a>: Validating a study from 2014 using
-(low biomass) microbiome samples obtained from biopsies in new-onset
-Crohn’s disease. Results could not be validated for any discernible
-reason. Only internal validation was employed. <em>Additional
-models</em> are evaluated.</li>
+Crohn’s Disease (16S)</a>: Validating a study from 2014 using (low
+biomass) microbiome samples obtained from biopsies in new-onset Crohn’s
+disease. Results could not be validated for any discernible reason. Only
+internal validation was employed. <em>Additional models</em> are
+evaluated.</li>
 <li><a href="https://pdobrano25.github.io/ml_website/cmd_validation.html">Predicting
-IBD (Microbiome)</a>: Validating a meta-analysis from 2023 using stool
+IBD (Metagenome)</a>: Validating a meta-analysis from 2023 using stool
 microbiome samples obtained from 3 cohorts in the
 curatedMetagenomicData. 3 other cohorts were not available to download,
 so results could not be fully validated. <em>Hybrid up/down
@@ -536,7 +539,7 @@ biopsies, applying machine learning to predict inflamed vs non-inflamed
 samples, and then predicting IBD using non-inflamed samples.
 <em>Downsampling</em> and <em>ensemble learning</em> are applied.</li>
 <li><a href="https://pdobrano25.github.io/ml_website/metaaml_validation.html">Predicting
-Disease (Microbiome)</a>: Validating a meta-analysis of microbiome data
+Disease (Metagenome)</a>: Validating a meta-analysis of microbiome data
 linked to several different diseases. <em>Downsampling</em> and
 <em>multiclass learning</em> are applied, and <em>additional models</em>
 are evaluated.</li>
@@ -545,6 +548,13 @@ IBD (Metabolome)</a>: Validating a metabolomic analysis of microbiome
 data from IBD and non-IBD subjects. <em>Downsampling</em> is applied and
 <em>additional models</em> are evaluated. <em>Feature importances</em>
 are extracted and contextualized with the literature.</li>
+<li><a href="https://pdobrano25.github.io/ml_website/muller_validation.html">Predicting
+Metabolites (Metagenome)</a>: Validating the performances of machine
+learning in predicting metabolite abundances using genus-level
+metagenomic data in IBD microbiomes. A series of <em>regression
+problems</em> with internal and external validation. <em>Feature
+importances</em> are extracted and contextualized with the literature.
+<em>Additional models</em> are evaluated.</li>
 </ul>
 <p><a href="https://pdobrano25.github.io/ml_website/overfitcheck.html"><strong>Overfit
 Check</strong></a>: comments on poor machine learning engineering

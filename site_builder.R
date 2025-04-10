@@ -1,6 +1,6 @@
 ### Constructing ml_website
 
-load("2025_03_18_ml_website_image.Renv")
+# load("2025_03_18_ml_website_image.Renv")
 
 #.  save.image("2025_03_18_ml_website_image.Renv")
 
@@ -52,6 +52,7 @@ files <- c("index.Rmd",
            "sinai_validation/sinai_validation.Rmd",
            "metaaml_validation/metaaml_validation.Rmd",   
            "hmp_validation/hmp_validation.Rmd",
+           "muller_validation/muller_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
@@ -89,4 +90,8 @@ for (f in files) {
 }
 
 t2 <- Sys.time()
-t2-t1 # Apr 4 2025 = 11.5 min
+t2-t1 
+# Apr 4 2025 = 12 min (added hmp_validation)
+# Apr 10 2025 = 17 min (added muller_validation)
+
+

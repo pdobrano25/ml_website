@@ -23,6 +23,8 @@ navbar:
           href: metaaml_validation.html  
         - text: "Predicting IBD (Metabolome)"
           href: hmp_validation.html  
+        - text: "Predicting metabolites (Metagenome)"
+          href: muller_validation.html
     - text: "Overfit Check"
       href: overfitcheck.html
     - text: "Machine Learning Models"
