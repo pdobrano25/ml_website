@@ -730,7 +730,7 @@ ranger.features.top.taxa = ranger.features %>%
   head(n=20)
 
 reshape2::acast(subset(ranger.features, taxa %in% ranger.features.top.taxa$taxa),
-                taxa ~ metabolite, value.var="importance") %>%
+                taxa ~ gsub("X__", "", metabolite), value.var="importance") %>%
   pheatmap::pheatmap()
 
 ```
