@@ -1,7 +1,7 @@
 ## PDobrano's Machine Learning Projects
 
 
-This repository stores code and (most of the) data required to reproduce analyses on the main site.
+This repository stores code and (most of the) data required to reproduce analyses on the [main site](https://pdobrano25.github.io/ml_website/index.html).
 
 Project directories are named after the cohort or lead author of the original study.
 
