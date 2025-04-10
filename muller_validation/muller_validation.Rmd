@@ -12,19 +12,19 @@ cache=T
 
 # **Validating** the analysis
 
-The [Borenstein lab](https://github.com/borenstein-lab) published a [study](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01149-z) seeking to predict metabolites in stool microbiomes using genera abundances. This is not the first attempt at a research group trying to tackle this problem [for example](https://www.nature.com/articles/s41467-019-10927-1), but the Borenstein group did great work collating several datasets made readily available for others to use.
+The [Borenstein lab](https://github.com/borenstein-lab) published a [study](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01149-z) seeking to predict metabolites in stool microbiomes using genus-level microbe abundances. This is not the first attempt at a research group trying to tackle this problem, [(for example)](https://www.nature.com/articles/s41467-019-10927-1), but the Borenstein group did great work collating several datasets made readily available for others to use.
 
-At a simple level, Muller's study built machine learning (random forest) regression algorithms, using relative abundances of genera to predict the abundances of metabolites shared across datasets. They did additional analyses (e.g. random-effects model) to assess the generalizability of predictions across datasets. I am interested in simply seeing if bacterial abundances can predict metabolites, and whether additional models can outperform random forest. 
+At a simple level, Muller's study built machine learning (random forest) regression algorithms, using relative abundances of genera to predict the abundances of metabolites shared across datasets. They did additional analyses (e.g. random-effects models) to assess the generalizability of predictions across datasets. I am interested in simply seeing if bacterial abundances can predict metabolites, and whether additional models can outperform random forest. 
 
-Below, I focus on only 2 of the datasets Muller studied: FRANZOSA and IHMP. Both of these datasets employ *whole genome shotgun sequencing* and *untargeted metabolomics*. I will:
+Below, I focus on only 2 of the datasets Muller studied: FRANZOSA and IHMP. Both of these datasets employ *whole genome shotgun sequencing* and *untargeted metabolomics* on IBD microbiomes. Below, I will:
 
-- Build models using FRANZOSA's n=157 samples
+- Build models using FRANZOSA's n=164 samples
 
 - Evaluate the predictions on the IHMP's n=79 samples
 
-- Extract feature importances and identify bacteria associated with metabolites
-
 - Test additional models that improve the predictive power.
+
+- Extract feature importances and identify bacteria associated with metabolites
 
 
 ## Loading metadata
@@ -95,8 +95,8 @@ saveRDS(ihmp_mbx, "../saved/ihmp_mbx_data.Rds")
 
 ```{r, process_metabolite_data, echo=F, results=T, plot=T, warning=F, message=F}
 # remember to remove 1 feature because of Sample column
-print("Franzosa contains 220 samples by 8,848 metabolites (467 annotated)")
-print("IHMP contains 382 samples by 81,867 metabolites (597 annotated)")
+print("Franzosa contains 164 samples by 8,848 metabolites (467 annotated)")
+print("IHMP contains 79 samples by 81,867 metabolites (597 annotated)")
 
 # load RDS
 franzosa_mbx = readRDS("../saved/franzosa_mbx_data.Rds")
@@ -182,7 +182,7 @@ library("patchwork") %>% suppressMessages()
 
 ```
 
-Log-transforming with a pseudocound had the effect we expected.
+Log-transforming the data with an added pseudocount had the effect we expected.
 
 ## Loading metagenomic data
 
@@ -577,15 +577,16 @@ ggplot(subset(muller_ranger_output_mean, mean_external_real > 0.3),
 
 ```
 
-Here, I've plotted the metabolites with a spearman correlation coefficient above 0.3 using the evaluation (IHMP) dataset. The authors used a threshold of 0.3 as well, but added additional statistical validation for their definition of a metabolite that can be robustly predicted.
+Here, I've plotted the metabolites with a Spearman correlation coefficient above 0.3 using the external evaluation (IHMP) dataset. Results from the internal data are in red, while external data are in blue. Null performances (built and evaluated using internal and external data) are in grey. All models were built and evaluated 15 times.
 
-Another difference is they focused on healthy microbiomes to build predictors, whereas I am focusing on IBD microbiomes. Still, I've validated that *urobilin* can be well predicted. Interestingly, this metabolite is also useful for discriminating healthy from IBD microbiomes, as I showed [here](https://pdobrano25.github.io/ml_website/hmp_validation.html#Feature_importances).
+The authors used a threshold of 0.3 as well, but added additional statistical validation for their definition of a metabolite that can be robustly predicted.
 
-Now, we'll ask whether other machine learning models are superior to random forest. The authors also evaluated lasso and elastic net. I'm going to focus on these metabolites
+Note: the original study used only healthy microbiomes to build predictors, whereas I am focusing on IBD microbiomes. Despite this key difference, I've nonetheless validated that *urobilin* can be well predicted. Interestingly, this metabolite is also useful for discriminating healthy from IBD microbiomes, as I showed [here](https://pdobrano25.github.io/ml_website/hmp_validation.html#Feature_importances).
+
 
 # **Extending** the analysis
 
-Let's test more models. We'll drop the null testing, since our goal is to evaluate whether these other models outperform random forest.
+Now, we'll ask whether other machine learning models are superior to random forest. The authors also evaluated lasso and elastic net. To save on computation time, I'm going to limit this benchmark to metabolites with external validation Spearman correlations > 0.3. We're also going to drop the null tests, since our goal is to evaluate whether these other models outperform random forest.
 
 ```{r model_loop,  echo=F, results=T, plot=T, warning=F, message=F }
 
@@ -639,17 +640,22 @@ ggplot(muller_loop_output_mean[,c("model", "metabolite", "mean_external_real")] 
   theme_minimal()+theme(legend.position="none")+
   labs(x="", y="Mean Spearman ρ", title="External Validation")
 ```
-It doesn't appear like anything is superior to random forest. Let's test this statistically. We'll build a random effects model.
+
+It doesn't appear like anything is superior to random forest. Let's test this statistically using a mixed effects model.
 
 ```{r model_stats,  echo=T, results=T, plot=T, warning=F, message=F }
 
+# set Random Forest (ranger) as the reference group
 muller_loop_output$model = factor(muller_loop_output$model, levels=c("ranger", "gbm", "glmnet", "svmLinear", "svmRadial", "xgbTree"))
 
+# build a mixed effects regression model
 lmerTest::lmer(external_real_spearman ~ model + (1|metabolite), muller_loop_output) %>%
   summary() %>% coef()
 
 ```
-The linear model shows random forest is significantly superior (across all metabolites), except for svmRadial. Now, we sort of biased these results by selecting the top metabolites (ρ > 0.3) identified by random forest. It's entirely possible that other models could have identified **different** metabolites better than random forest, which bumps up their overall performance. (But, these 41 metabolites alone took 9 hours to compute).
+The mixed effects model shows random forest is significantly superior (across all metabolites), except for svmRadial.
+
+Now, we sort of biased these results by selecting the top metabolites (ρ > 0.3) identified by random forest. It's entirely possible that other models could have identified **different** metabolites better than random forest, which could have bumped up their overall performance. However, these 41 metabolites alone took 9 hours to compute.
 
 ## Feature importances
 
@@ -710,7 +716,7 @@ ranger.features = do.call(rbind, lapply(subset.metabolites, function(met){
 
 Let's plot a heatmap with features (taxa) and their associations with the top 41 metabolites.
 
-We'll select only the top 50 taxa based on their mean importance value.
+We'll select only the top 20 taxa based on their mean importance value.
 
 ```{r feature_heatmap, echo=F, results=T, plot=T, warning=F, message=F }
 
@@ -721,18 +727,19 @@ ranger.features.top.taxa = ranger.features %>%
   mutate(mean.imp = mean(importance)) %>%
   dplyr::select(taxa, mean.imp) %>% distinct() %>%
   arrange(-mean.imp) %>%
-  head(n=50)
+  head(n=20)
 
 reshape2::acast(subset(ranger.features, taxa %in% ranger.features.top.taxa$taxa),
                 taxa ~ metabolite, value.var="importance") %>%
   pheatmap::pheatmap()
 
 ```
+
 There are a few metabolites with an feature importances worth noting.
 
-First, **urobilin**, which I previously found to be associated with IBD microbiomes [here](https://pdobrano25.github.io/ml_website/hmp_validation.html#Feature_importances). Urobilin has a band of high importance values in the top left of the heatmap.
+First, **urobilin**, which I previously found to be associated with IBD microbiomes [here](https://pdobrano25.github.io/ml_website/hmp_validation.html#Feature_importances). Urobilin has a few features with outsized importance values towards the top right of the heatmap.
 
-Second, **chenodeoxycholate** (CDCA), a primary bile acid, also has a band of importance features. Primary bile acids, including CDCA, have been consistently found to be enriched in IBD, including in Franzosa's original [study](https://www.nature.com/articles/s41564-018-0306-4). 
+Second, **chenodeoxycholate** (CDCA), a primary bile acid, has a band of importance features. Primary bile acids, including CDCA, have been consistently found to be enriched in IBD, including in Franzosa's original [study](https://www.nature.com/articles/s41564-018-0306-4). 
 
 Let's explore the features most strongly predictive of these two metabolites
 
@@ -747,7 +754,7 @@ ranger.features.top = subset(ranger.features,
 ggplot(ranger.features.top %>% arrange(-importance),
        aes(x=cor, y=importance))+
   geom_point(shape=21, aes(fill=cor, size=importance))+
-  ggrepel::geom_label_repel(data = subset(ranger.features.top, importance > 50),
+  ggrepel::geom_label_repel(data = subset(ranger.features.top, importance > 200),
                            aes(x=cor, y=importance, label=taxa), size=3)+
   scale_fill_gradient2(high=scales::muted("red"),
                        mid="white",
