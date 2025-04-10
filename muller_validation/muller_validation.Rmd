@@ -659,7 +659,7 @@ Now, we sort of biased these results by selecting the top metabolites (ρ > 0.3)
 
 ## Feature importances
 
-Since random forest was superior, let's go back to the first models we build using the ranger package. We'll extract out the feature importances for metabolites and correlate them with the metabolites to identify their direction of association.
+Since random forest was superior, let's go back to the first models we built using the ranger package. We'll extract out the feature importances for metabolites and correlate them with the taxa to identify their direction of association.
 
 ```{r ranger_feature_importances, echo=F, results=T, plot=T, warning=F, message=F }
 
