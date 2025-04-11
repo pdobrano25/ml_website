@@ -1643,13 +1643,20 @@ dimension reduction (using PCA):</p>
 going to subset the data to one compartment to simplify the problem.
 Which compartment has the greatest number of samples with good
 representation among conditions?</p>
-<pre><code>##   Location Status Disease Samples Samples per Location Samples per Location per Disease Samples Per Location per Disease per Status
-## 1   Rectum      I      CD     116                  903                              368                                         116
-## 2   Rectum   NonI      CD     252                  903                              368                                         252
-## 3   Rectum      I Control       0                  903                              224                                           0
-## 4   Rectum   NonI Control     224                  903                              224                                         224
-## 5   Rectum      I      UC     144                  903                              311                                         144
-## 6   Rectum   NonI      UC     167                  903                              311                                         167</code></pre>
+<pre><code>##   Location Status Disease Samples Samples per Location Samples per Location per Disease
+## 1   Rectum      I      CD     116                  903                              368
+## 2   Rectum   NonI      CD     252                  903                              368
+## 3   Rectum      I Control       0                  903                              224
+## 4   Rectum   NonI Control     224                  903                              224
+## 5   Rectum      I      UC     144                  903                              311
+## 6   Rectum   NonI      UC     167                  903                              311
+##   Samples Per Location per Disease per Status
+## 1                                         116
+## 2                                         252
+## 3                                           0
+## 4                                         224
+## 5                                         144
+## 6                                         167</code></pre>
 <p>We can see that the rectum compartment has the most samples overall,
 with high representation per disease and status.</p>
 <p>This makes biological sense. The rectum may be inflamed in CD or UC,

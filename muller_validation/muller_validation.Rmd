@@ -561,8 +561,8 @@ print(paste0(subset(muller_ranger_output_mean, mean_external_real > 0.3) %>% nro
 ggplot(subset(muller_ranger_output_mean, mean_external_real > 0.3),
        aes(x=reorder(gsub("X__", "", metabolite), mean_external_real)))+
   # plot violins
-  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=internal_null_spearman), fill="grey", color="black", alpha=0.2)+
-  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=external_null_spearman), fill="grey", color="black", alpha=0.2)+
+  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=internal_null_spearman), fill="grey", alpha=0.2)+
+  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=external_null_spearman), fill="grey", alpha=0.2)+
   geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=internal_real_spearman, fill="1"), color="black", alpha=0.2)+
   geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=external_real_spearman, fill="2"), fill=2, color="black", alpha=0.2)+
   # plot mean values
@@ -631,13 +631,15 @@ ggplot(muller_loop_output_mean[,c("model", "metabolite", "mean_internal_real")] 
        aes(x=model, y=mean_internal_real))+
   geom_violin(draw_quantiles = 0.5)+
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill=model))+
-  theme_minimal()+theme(legend.position="none")+
+  theme_minimal()+theme(legend.position="none",
+                        axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="", y="Mean Spearman ρ", title="Internal Validation")|
 ggplot(muller_loop_output_mean[,c("model", "metabolite", "mean_external_real")] %>% distinct(),
        aes(x=model, y=mean_external_real))+
   geom_violin(draw_quantiles = 0.5)+
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill=model))+
-  theme_minimal()+theme(legend.position="none")+
+  theme_minimal()+theme(legend.position="none",
+                        axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="", y="Mean Spearman ρ", title="External Validation")
 ```
 
