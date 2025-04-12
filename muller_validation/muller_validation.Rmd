@@ -29,7 +29,7 @@ Below, I focus on only 2 of the datasets Muller studied: FRANZOSA and IHMP. Both
 
 ## Loading metadata
 
-First, we'll select the samples we want to work with. We already know there are pseudoreplicates in the raw datasets, so let's select only unique IBD patients to work with:
+First, we'll select the samples we want to work with. We already know there are [pseudoreplicates](https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates) in the raw datasets, so let's select only unique IBD patients to work with:
 
 ```{r sample_picking, echo=F, results=T, plot=T, warning=F, message=F }
 

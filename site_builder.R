@@ -53,6 +53,7 @@ files <- c("index.Rmd",
            "metaaml_validation/metaaml_validation.Rmd",   
            "hmp_validation/hmp_validation.Rmd",
            "muller_validation/muller_validation.Rmd",
+           "litichevskiy_validation/litichevskiy_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
@@ -93,5 +94,5 @@ t2 <- Sys.time()
 t2-t1 
 # Apr 4 2025 = 12 min (added hmp_validation)
 # Apr 10 2025 = 17 min (added muller_validation)
-
+# Apr 12 2025 = 19 min (added litichevskiy_validation)
 

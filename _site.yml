@@ -25,6 +25,8 @@ navbar:
           href: hmp_validation.html  
         - text: "Predicting Metabolites (Metagenome)"
           href: muller_validation.html
+        - text: "Predicting Mouse Age (Metagenome)"
+          hrof: litichevskiy_validation.html
     - text: "Overfit Check"
       href: overfitcheck.html
     - text: "Machine Learning Models"

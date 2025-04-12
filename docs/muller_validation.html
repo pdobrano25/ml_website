@@ -1533,6 +1533,7 @@ border-radius: 0px;
     <li>
       <a href="muller_validation.html">Predicting Metabolites (Metagenome)</a>
     </li>
+    <li class="dropdown-header">Predicting Mouse Age (Metagenome)</li>
   </ul>
 </li>
 <li>
@@ -1605,8 +1606,9 @@ metabolites</p></li>
 <div id="loading-metadata" class="section level2">
 <h2>Loading metadata</h2>
 <p>First, we’ll select the samples we want to work with. We already know
-there are pseudoreplicates in the raw datasets, so let’s select only
-unique IBD patients to work with:</p>
+there are <a href="https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates">pseudoreplicates</a>
+in the raw datasets, so let’s select only unique IBD patients to work
+with:</p>
 <pre><code>##             dataset disease samples
 ## 1 FRANZOSA_IBD_2019     IBD     164
 ## 2  iHMP_IBDMDB_2019     IBD      79</code></pre>

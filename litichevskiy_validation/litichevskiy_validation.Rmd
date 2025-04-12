@@ -1,0 +1,499 @@
+---
+title: "Predicting Mouse Age (Metagenome)"
+
+---
+
+```{r setup_mlp, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library("dplyr")
+library("ggplot2")
+cache=T
+```
+
+# **Validating** the analysis
+
+A recent Nature Microbiology [study](https://www.nature.com/articles/s41564-025-01963-3) reported a metagenomic examination of mice across the lifespan. They found that the microbiome undergoes an accumulation of stochastic events that are relatively irreversible. This means there is a microbial signal associated with aging, which they leveraged to build machine learning age predictor. They also evaluated the impact of fasting and caloric restriction on the microbiome in these mice.
+
+Their data are available [here](https://github.com/levlitichev/DRiDO_microbiome/tree/main/data).
+
+I was most interested in their Figure 5I, where they tested the hypothesis that caloric restriction/fasting "de-ages" the microbiome. They built a random forest regressor using mice fed *ad libitum* to predict the ages of mice on calorie restriction/fasting regimens. Surprisingly, the predictor guessed their ages were *older* than they actually were, disproving the hypothesis.
+
+Let's see if we can validate these results, and then test other models to see if this was an artefact of the algorithm they chose.
+
+**Note:** I have to mention that this dataset was a dream to work with. The authors clearly made a good effort to make their data as user friendly as possible.
+
+## Loading data
+
+Let's load their genus-level data processed using kraken2.
+
+```{r load_data, echo=F, results=T, plot=T, warning=F, message=F }
+
+mice_data = read.csv("../litichevskiy_validation/kraken_genus_relab_n100x2997.txt", sep="\t")
+
+print(paste0(nrow(mice_data), " genera by ", ncol(mice_data)-1, " samples"))
+
+mice_data[1:5,1:5]
+
+
+```
+It looks like all of the data we need are pre-packed in the feature table. (It's a *lot* of samples!)
+
+## Processing metadata
+
+Let's unpack the metadata from the column names, which appears to follow the format:  Genotype_Diet_Mouse_Time. Of note, we need to subset to these timepoints: 5, 10, 16, 22 and 28 months.
+
+Then we'll check the distributions of samples.
+
+```{r unpack_metadata, echo=F, results=T, plot=T, warning=F, message=F }
+
+# make rownames Genus column, then delete it
+rownames(mice_data) = mice_data$genus
+mice_data$genus = NULL
+
+# transpose
+mice_data = t(mice_data) %>% data.frame()
+
+# extract samples and meta
+mice_metadata = data.frame(sample = rownames(mice_data)) %>%
+  tidyr::separate(sample, into=c("genotype", "diet", "mouse", "time"), sep="_", remove=F)
+
+# make weeks time
+mice_metadata$weeks = gsub("w", "", mice_metadata$time) %>% as.numeric()
+
+# convert weeks to month
+mice_metadata$months = mice_metadata$weeks / 4.34
+
+# subset to specified time points: 5, 10, 16, 22 and 28
+bound = 0.4 # this bound gives us 2618, as in the paper!
+mice_metadata = subset(mice_metadata, 
+                       4+bound < months & months < 5+bound | 
+                         9+bound < months & months < 10+bound |
+                         15+bound < months & months < 16+bound  | 
+                         21+bound < months & months < 22+bound |
+                         27+bound < months & months < 28+bound )
+
+# subset data
+mice_data = mice_data[rownames(mice_data) %in% mice_metadata$sample, ]
+
+# add column to indicate "AD" or "DR"
+mice_metadata$class = ifelse(mice_metadata$diet == "AL", "AL", "DR")
+table(mice_metadata[,c("genotype", "diet")])
+
+```
+
+Out of the 2618 samples, 528 are "AL", which corresponds to *ad libitum* fed mice, our control group. All of the others refer to some degree of calorie restriction or fasting.
+
+## Data processing
+
+Now let's check the metagenomic data, and see if any additional processing is needed.
+
+```{r check_distributions, echo=F, results=T, plot=T, warning=F, message=F }
+
+# visualize distribution of data
+mice_raw_hist = ggplot(reshape2::melt(as.matrix(mice_data)))+
+  ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(x="Abundance", y="Frequency", title="Metagenomics (Untransformed)")
+
+# calculate pseudocount
+mice_pseudocount = min(mice_data[mice_data!=0])/2
+
+# log transform
+mice_log = log(mice_data+mice_pseudocount, base=2)
+
+mice_log_hist = ggplot(reshape2::melt(as.matrix(mice_log)))+
+  ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
+                                  color="black", fill="white", alpha=0.2)+
+  theme_minimal()+
+  labs(x="Log Abundance", y="Frequency", title="Metagenomics (Log-transformed)")
+
+# plot both
+mice_raw_hist|mice_log_hist
+
+```
+
+The distributions looks much better after log-transforming with a pseudcount added.
+
+## Building model
+
+Now let's seek to validate their analysis performed in Fig5I. That is, build a random forest regressor using the mice fed *ad libitum* and predict the ages of the calorie restriction/fasting mice. Remember, our goal isn't to achieve high accuracy.
+
+```{r build_models, echo=F, results=T, plot=T, warning=F, message=F }
+
+# first we need to divide the dataset (AL and DR) and keep track of their true ages
+mice_al = mice_log[rownames(mice_log) %in% subset(mice_metadata, class == "AL")$sample,]
+
+# to add "age" column, we can just extract the last 4 digits of the rowname!
+mice_al$age = gsub("w", "", substr(rownames(mice_al), nchar(rownames(mice_al))-3, nchar(rownames(mice_al)))) %>% as.numeric()
+
+# and repeat for DR
+mice_dr = mice_log[rownames(mice_log) %in% subset(mice_metadata, class == "DR")$sample,]
+mice_dr$age = gsub("w", "", substr(rownames(mice_dr), nchar(rownames(mice_dr))-3, nchar(rownames(mice_dr)))) %>% as.numeric()
+
+# let's build a predictor
+set.seed(25)
+mice_rf_model = ranger::ranger(age ~.,
+               mice_al)
+# extract predictions
+mice_al_predictions = mice_rf_model$predictions
+# make dataframe
+mice_al_pred_df = data.frame(sample = rownames(mice_al),
+                             true = mice_al$age,
+                             pred = mice_al_predictions,
+                             diet = "AL")
+
+# apply predictor and extract predictions
+mice_dr_predictions = predict(mice_rf_model, mice_dr)$predictions
+mice_dr_pred_df = data.frame(sample = rownames(mice_dr),
+                             true = mice_dr$age,
+                             pred = mice_dr_predictions,
+                             diet = "DR")
+# merge
+mice_pred_df = rbind(mice_al_pred_df,
+                     mice_dr_pred_df) %>% data.frame()
+
+# add months
+mice_pred_df = merge(mice_pred_df,
+                     mice_metadata[,c("sample", "mouse", "months")], by="sample")
+mice_pred_df$month = round(mice_pred_df$months, digits=0)
+
+# calculate median per month
+mice_pred_median_df = mice_pred_df %>%
+  group_by(month, diet) %>%
+  mutate(med.true = median(true/4.34),
+         med.pred = median(pred/4.34)) %>%
+  dplyr::select(diet, month, med.true, med.pred) %>% distinct() %>% data.frame()
+
+# visualize
+mice_pred_df_plot = ggplot(mice_pred_df)+ # convert weeks to months
+    # add regression line
+    geom_smooth(method="lm", data=subset(mice_pred_df, diet == "DR"),
+      aes(x = true/4.34, y = pred/4.34, color="DR"))+
+  geom_smooth(method="lm", data=subset(mice_pred_df, diet == "AL"),
+      aes(x = true/4.34, y = pred/4.34, color="AL"))+
+  # add points
+  geom_jitter(data=subset(mice_pred_df, diet == "DR"),
+       aes(x = true/4.34, y = pred/4.34, fill="DR"), width=0.6, shape=21, alpha=1)+
+  geom_jitter(data=subset(mice_pred_df, diet == "AL"),
+       aes(x = true/4.34, y = pred/4.34, fill="AL"), shape=21,alpha=1)+
+  # add medians
+  geom_segment(data=subset(mice_pred_median_df, diet == "AL") %>% group_by(),
+       aes(x = (med.true)-1.5, xend = (med.true)+1.5,
+           y = med.pred, yend = med.pred, color="AL"),size=2, alpha=1)+
+    geom_segment(data=subset(mice_pred_median_df, diet == "DR"),
+       aes(x = (med.true)-1.5, xend = (med.true)+1.5,
+           y = med.pred, yend = med.pred, color="DR"),size=2, alpha=1)+
+  scale_x_continuous(breaks = c(5, 10, 16, 22, 28))+
+    scale_y_continuous(breaks = c(5, 10, 16, 22, 28))+
+  theme_minimal()+
+  guides(color="none")+
+  labs(x="Actual age (months)",
+       y="Predicted age (months)",
+       fill = "Diet")
+
+mice_pred_df_plot
+
+```
+
+I've added a regression line and lines indicating the median predicted value per diet group.
+
+It looks quite clear that mice from the DR (dietary restriction) group are being predicted to have an older age than what is true.
+
+# **Extending** the analysis
+
+## Part 1: Fixing pseudoreplicates
+
+If we examined the data we're working with closely, we'll have recognized the author committed one of the common mistakes of machine learning: [pseudoreplicates](https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates).
+
+Since they were trying to make a point about a previous hypothesis, rather than build a generalizable model, I wouldn't consider this a grievous case of overfitting. However, I would like to see how a properly engineered random forest would perform. Namely, was their upshift in predictions actually an artefact of overfitting.
+
+So, let's build a stratified random forest such that only 1 sample per mouse is selected for fold. We'll repeat 15 times and take the mean predictions across the stratifications. 
+
+```{r stratify_ranger, echo=F, results=T, plot=T, warning=F, message=F }
+
+# establish stratified folds
+# 1, list out mice (in order of AL data)
+mouse.subset <- paste("m", mice_metadata[match(rownames(mice_al), mice_metadata$sample),]$mouse, sep="")
+# 2, select 1 sample per mouse
+mouse.subset.list = do.call(rbind, lapply(1:15, function(iter){
+  set.seed(iter)
+  data.frame(mouse = mouse.subset) %>%
+    mutate(sample = rownames(.)) %>%
+    group_by(mouse) %>%
+    slice_sample(n=1) %>%
+    mutate(iter = iter)
+}))
+# now loop through iters using stratifications
+# take mean of 5 fold predictions
+
+if(cache == F){
+# let's build a predictor
+mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
+  mouse.subset.list.subset = subset(mouse.subset.list, iter == iter)
+  data.subset = mice_al[as.numeric(mouse.subset.list$sample),]
+  set.seed(25)
+  mice_rf_model = ranger::ranger(age ~.,
+               data.subset)
+  # extract predictions
+  mice_al_predictions = mice_rf_model$predictions
+  # make dataframe
+  mice_al_pred_df = data.frame(sample = rownames(data.subset),
+                             true = data.subset$age,
+                             pred = mice_al_predictions,
+                             diet = "AL")
+
+  # apply predictor and extract predictions
+  mice_dr_predictions = predict(mice_rf_model, mice_dr)$predictions
+  mice_dr_pred_df = data.frame(sample = rownames(mice_dr),
+                             true = mice_dr$age,
+                             pred = mice_dr_predictions,
+                             diet = "DR")
+  # merge
+  mice_pred_df = rbind(mice_al_pred_df,
+                       mice_dr_pred_df) %>% data.frame()
+  mice_pred_df$iter = iter
+  mice_pred_df
+}))
+
+saveRDS(mice_pred_stratified, "../saved/mice_pred_stratified.Rds")
+
+}
+
+mice_pred_stratified = readRDS("../saved/mice_pred_stratified.Rds")
+
+
+# take mean predictions
+mice_pred_stratified_mean = mice_pred_stratified %>%
+    mutate(sample = gsub("\\..*", "", sample)) %>%
+  group_by(sample) %>%
+  mutate(mean.pred = mean(pred)) %>%
+  dplyr::select(-pred, -iter) %>% distinct() %>% data.frame()
+
+# add months
+mice_pred_stratified_mean = merge(mice_pred_stratified_mean,
+                     mice_metadata[,c("sample", "mouse", "months")], by="sample")
+mice_pred_stratified_mean$month = round(mice_pred_stratified_mean$months, digits=0)
+
+# calculate median per month
+mice_pred_stratified_mean_df = mice_pred_stratified_mean %>%
+  group_by(month, diet) %>%
+  mutate(med.true = median(true/4.34),
+         med.pred = median(mean.pred/4.34)) %>%
+  dplyr::select(diet, month, med.true, med.pred) %>% distinct() %>% data.frame()
+
+
+# visualize
+mice_pred_df_plot2 = ggplot(mice_pred_stratified_mean)+ # convert weeks to months
+  # add regression line
+  geom_smooth(method="lm", data=subset(mice_pred_stratified_mean, diet == "DR"),
+       aes(x = true/4.34, y = mean.pred/4.34, color="DR"))+
+  geom_smooth(method="lm", data=subset(mice_pred_stratified_mean, diet == "AL"),
+       aes(x = true/4.34, y = mean.pred/4.34, color="AL"))+
+  # add points
+  geom_jitter(data=subset(mice_pred_stratified_mean, diet == "DR"),
+       aes(x = true/4.34, y = mean.pred/4.34, fill="DR"), width=0.6, shape=21, alpha=1)+
+  geom_jitter(data=subset(mice_pred_stratified_mean, diet == "AL"),
+       aes(x = true/4.34, y = mean.pred/4.34, fill="AL"), shape=21,alpha=1)+
+  # add medians
+  geom_segment(data=subset(mice_pred_stratified_mean_df, diet == "AL") %>% group_by(),
+       aes(x = (med.true)-1.5, xend = (med.true)+1.5,
+           y = med.pred, yend = med.pred, color="AL"),size=2, alpha=1)+
+    geom_segment(data=subset(mice_pred_stratified_mean_df, diet == "DR"),
+       aes(x = (med.true)-1.5, xend = (med.true)+1.5,
+           y = med.pred, yend = med.pred, color="DR"),size=2, alpha=1)+
+  scale_x_continuous(breaks = c(5, 10, 16, 22, 28))+
+  scale_y_continuous(breaks = c(5, 10, 16, 22, 28))+
+  theme_minimal()+
+  guides(color="none")+
+  labs(x="Actual age (months)",
+       y="Predicted age (months)",
+       fill = "Diet",
+       title="Pseudoreplicates Removed")
+
+mice_pred_df_plot+labs(title="Pseudoreplicates Kept") | mice_pred_df_plot2
+```
+
+Removing pseudoreplicates tells a very different story! Most striking is the change in *slope* of the DR predictions. There is a big upshift in predictions at the first time point (5 months), but it gets neutralized around 16 months, and then reverses at 28 months. Also, it's not a linear shift. Predictions plateau between 16 and 22 months, suggesting the calorie restriction/fasting does not "age" evenly across the lifespan, and may actually *"stop aging" after middle age*.
+
+Another detail to notice, is the AL predictions become more accurate. When pseudoreplicates are kept, 5 month samples are predicted to be ~10 months, and 28 month samples are predicted to be ~19 months. When pseudoreplicates are removed, 5 months = 5 months, and 28 months = 28 months. This suggests the original AL predictions were **downshifted**, likely overfitting the pseudoreplicates towards their mean age value, and removing pseudoreplicates removed this bias.
+
+Our summary statistic of y-intercept is no longer as useful, and consequently, it's unclear how to proceed. We aren't solving an "optimization" problem any more. 
+
+So, let's test other models and just see if the overall conclusions change.
+
+## Part 2. Additional models
+
+We'll build these models
+
+```{r}
+ml.models = c("gbm","glmnet","ranger","svmLinear","svmRadial","xgbTree")
+```
+
+and consider each of the 15 stratifications as an iteration, and take the mean.
+
+```{r stratify_models_loop, echo=F, results=T, plot=T, warning=F, message=F }
+
+# build helper function to extract predictions
+extract_best_pred <- function(model) {
+  if (!inherits(model, "train")) stop("Input must be a caret train object")
+  best_tune <- model$bestTune
+  tune_cols <- names(best_tune)
+  best_preds <- model$pred
+  for (col in tune_cols) {
+    best_preds <- best_preds[best_preds[[col]] == best_tune[[col]], ]
+  }
+  # take average pred across folds
+  best_preds = best_preds %>%
+    group_by(rowIndex) %>%
+    mutate(mean.pred = mean(pred)) %>%
+    dplyr::select(mean.pred, obs, rowIndex) %>% distinct()
+  return(best_preds)
+}
+
+# loop through models
+if(cache == F){
+
+  t1 <- Sys.time()
+mice_pred_stratified_loop = do.call(rbind, lapply(ml.models, function(algo){
+  # establish stratified folds
+  # 1, list out mice (in order of AL data)
+  mouse.subset <- paste("m", mice_metadata[match(rownames(mice_al), mice_metadata$sample),]$mouse, sep="")
+  # 2, select 1 sample per mouse
+  mouse.subset.list = do.call(rbind, lapply(1:15, function(iter){
+    set.seed(iter)
+    data.frame(mouse = mouse.subset) %>%
+      mutate(sample = rownames(.)) %>%
+      group_by(mouse) %>%
+      slice_sample(n=1) %>%
+      mutate(iter = iter)
+  }))
+# now loop through iters using stratifications
+# take mean of 5 fold predictions
+
+# let's build a predictor
+mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
+  
+    print(paste0(algo, " iter ", iter))
+
+  
+  mouse.subset.list.subset = subset(mouse.subset.list, iter == iter)
+  data.subset = mice_al[as.numeric(mouse.subset.list$sample),]
+  
+  set.seed(25)
+  mice_model = caret::train(
+    age ~ .,
+    data = data.subset,
+    trControl = caret::trainControl(method="cv", 
+                                    number = 5,
+                                    savePred=T),
+    metric = "RMSE",
+    method = algo,
+    preProc = c("center", "scale")) %>% suppressWarnings()
+  
+  # extract predictions
+  mice_al_predictions = extract_best_pred(mice_model)
+  # arrange by sample
+  mice_al_predictions = mice_al_predictions %>% arrange(rowIndex)
+  
+  # make dataframe
+  mice_al_pred_df = data.frame(sample = rownames(data.subset),
+                             true = data.subset$age,
+                             pred = mice_al_predictions$mean.pred,
+                             diet = "AL")
+
+  # apply predictor and extract predictions
+  mice_dr_predictions = predict(mice_model, mice_dr)
+  
+  mice_dr_pred_df = data.frame(sample = rownames(mice_dr),
+                             true = mice_dr$age,
+                             pred = mice_dr_predictions,
+                             diet = "DR")
+  # merge
+  mice_pred_df = rbind(mice_al_pred_df,
+                       mice_dr_pred_df) %>% data.frame()
+  mice_pred_df$iter = iter
+  mice_pred_df
+}))
+
+
+# take mean predictions
+mice_pred_stratified_mean = mice_pred_stratified %>%
+  mutate(sample = gsub("\\..*", "", sample)) %>%
+  group_by(sample) %>%
+  mutate(mean.pred = mean(pred)) %>%
+  dplyr::select(-pred, -iter) %>% distinct() %>% data.frame()
+
+mice_pred_stratified_mean$model = algo
+
+mice_pred_stratified_mean
+
+}))
+
+  t2 <- Sys.time()
+  # ~ 2.2 hours
+  t2-t1
+  
+saveRDS(mice_pred_stratified_loop, "../saved/mice_pred_stratified_loop.Rds")
+
+}
+
+mice_pred_stratified_loop = readRDS("../saved/mice_pred_stratified_loop.Rds")
+
+# plot
+
+
+# add months
+mice_pred_stratified_loop = merge(mice_pred_stratified_loop,
+                     mice_metadata[,c("sample", "mouse", "months")], by="sample")
+mice_pred_stratified_loop$month = round(mice_pred_stratified_loop$months, digits=0)
+
+# calculate median per month
+mice_pred_stratified_loop_mean = mice_pred_stratified_loop %>%
+  group_by(month, diet, model) %>%
+  mutate(med.true = median(true/4.34),
+         med.pred = median(mean.pred/4.34)) %>%
+  dplyr::select(model, diet, month, med.true, med.pred) %>% distinct() %>% data.frame()
+
+
+# visualize
+mice_pred_loop_plot = ggplot(mice_pred_stratified_loop)+ # convert weeks to months
+  # add regression lines
+    geom_smooth(method="lm", data=subset(mice_pred_stratified_loop, diet == "DR"),
+       aes(x = true/4.34, y = mean.pred/4.34, color="DR"))+
+  geom_smooth(method="lm", data=subset(mice_pred_stratified_loop, diet == "AL"),
+       aes(x = true/4.34, y = mean.pred/4.34, color="AL"))+
+  # add points
+  geom_jitter(data=subset(mice_pred_stratified_loop, diet == "DR"),
+       aes(x = true/4.34, y = mean.pred/4.34, fill="DR"), width=0.6, shape=21, alpha=1)+
+  geom_jitter(data=subset(mice_pred_stratified_loop, diet == "AL"),
+       aes(x = true/4.34, y = mean.pred/4.34, fill="AL"), shape=21,alpha=1)+
+  # add medians
+  geom_segment(data=subset(mice_pred_stratified_loop_mean, diet == "AL") %>% group_by(),
+       aes(x = (med.true)-1.5, xend = (med.true)+1.5,
+           y = med.pred, yend = med.pred, color="AL"),size=2, alpha=1)+
+    geom_segment(data=subset(mice_pred_stratified_loop_mean, diet == "DR"),
+       aes(x = (med.true)-1.5, xend = (med.true)+1.5,
+           y = med.pred, yend = med.pred, color="DR"),size=2, alpha=1)+
+  scale_x_continuous(breaks = c(5, 10, 16, 22, 28))+
+  scale_y_continuous(breaks = c(5, 10, 16, 22, 28))+
+  theme_minimal()+
+  guides(color="none")+
+  labs(x="Actual age (months)",
+       y="Predicted age (months)",
+       fill = "Diet",
+       title="Pseudoreplicates Removed")+
+  facet_wrap(~model)
+
+mice_pred_loop_plot
+
+```
+
+There is some model-specificity with this effect. GBM, random forest, svmRadial, and XGBoost predictions plateau at 22 months, while elastic net and svmLinear plateau 6 months later at the final time point. Interestingly, these models can be defined as "non-linear" vs "linear" models according to when the predictions plateau.
+
+Nonetheless, these results leave a question mark after the conclusions made in the original study.
+
+# Conclusions
+
+To conclude, we found that one of the study's conclusions changes when machine learning is engineered properly. 
+
