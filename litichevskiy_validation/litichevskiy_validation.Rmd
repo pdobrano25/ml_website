@@ -314,7 +314,7 @@ mice_pred_df_plot+labs(title="Pseudoreplicates Kept") | mice_pred_df_plot2
 
 Surprisingly, removing pseudoreplicates appears to have had a negligible impact on the results.
 
-Let's test other models and just see if other models reveal other patterns.
+Let's test other models and see if they reveal different patterns.
 
 ## Part 2. Additional models
 
@@ -501,7 +501,7 @@ ggplot(mice_pred_stratified_loop[,c("model","iter", "MAE")] %>% distinct())+
 
 ```
 
-GBM, elastic net, and XGBoost are a razors' edge better than random Forest. An interesting detail worth noting is that these 3 models expanded the prediction range, such that we can now see ages upwards of 28 weeks across the groups.
+GBM, elastic net, and XGBoost are better than random Forest by a margin of ~1 week. An interesting detail worth noting is that these 3 models expanded the prediction range, such that we can now see ages upwards of 28 weeks across the groups.
 
 Nonetheless, I don't think we can make a conclusion that differs from the original study.
 
