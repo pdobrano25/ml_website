@@ -1,5 +1,5 @@
 ---
-title: "Discriminating IBD (RNAseq) "
+title: "Discriminating IBD using Biopsy Transcriptomes"
 ---
 
 ```{r setup, include=FALSE}
@@ -9,7 +9,6 @@ library("ggplot2")
 
 ```
 
-## Predicting IBD using the transcriptome of biopsies
 
 [Argmann et al](https://gut.bmj.com/content/72/7/1271.long) performed RNAseq on a mucosal biopsies and blood from a large cohort of IBD and non-IBD controls. Their primary goal was to construct a "molecular inflammation" score that correlates with established measurements of inflammation. For reasons outlined below, I was unable to validate this analysis. 
 

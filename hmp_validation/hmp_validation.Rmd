@@ -1,5 +1,5 @@
 ---
-title: "Predicting IBD (Metabolome)"
+title: "Predicting IBD using Metabolomes"
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +11,6 @@ cache = T
 
 ```
 
-## Predicting IBD using the metabolome
 
 [The Huttenhower Lab](https://huttenhower.sph.harvard.edu/home/) conducted one of the largest and deepest characterizations of the IBD microbiome, incorporating metagenomics, metatranscriptomics, and metabolomics. [This study](https://www.nature.com/articles/s41564-018-0306-4) was published in Nature in 2019.
 

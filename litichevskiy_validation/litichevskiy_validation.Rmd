@@ -1,5 +1,5 @@
 ---
-title: "Predicting Mouse Age (Metagenome)"
+title: "Predicting the Age of Mice using their Microbiome"
 
 ---
 
@@ -10,7 +10,6 @@ library("ggplot2")
 cache=T
 ```
 
-## Predicting the age of mice using their microbiome
 
 A recent Nature Microbiology [study](https://www.nature.com/articles/s41564-025-01963-3) conducted a metagenomic examination of mice across the lifespan. They found that the microbiome undergoes an accumulation of stochastic events that are relatively irreversible. This means there is a microbial signal associated with aging, which they leveraged to build a machine learning-based age predictor. They also evaluated the impact of fasting and caloric restriction on the microbiome in these mice.
 

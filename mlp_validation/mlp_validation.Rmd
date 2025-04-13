@@ -1,5 +1,5 @@
 ---
-title: "Predicting Microbial Load (16S)"
+title: "Predicting Microbial Load using 16S data"
 
 ---
 
@@ -9,7 +9,6 @@ library("dplyr")
 library("ggplot2")
 ```
 
-## Microbial Load Predictor
 
 The **Microbial Load Predictor** **(MLP)** is a tool validated and published by Nishijima et al in Cell, 2024
 [Link to paper](10.1016/j.cell.2024.10.022)

@@ -1,5 +1,5 @@
 ---
-title: "Predicting IBD (Metagenome)"
+title: "Predicting IBD using Metagenomic Data from Several Cohorts"
 ---
 
 ```{r setup, include=FALSE}
@@ -9,7 +9,6 @@ library("ggplot2")
 
 ```
 
-## Predicting IBD using metagenomic data from several cohorts
 
 The [**curatedMetagenomicData**](https://waldronlab.io/curatedMetagenomicData/) (**CMD**) is a large collection of microbiome datasets, re-processed using a standard pipeline to minimize batch effects.
 

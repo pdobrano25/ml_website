@@ -1,5 +1,5 @@
 ---
-title: "Predicting Disease (Metagenome)"
+title: "Predicting Several Diseases using Metagenomic Data"
 ---
 
 
@@ -12,7 +12,6 @@ cache = T
 
 ```
 
-## Predicting several diseases using the metagenome
 
 [The Segata Lab](http://segatalab.cibio.unitn.it/tools/metaml/index.html) published a [study](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004977) in 2016 employing machine learning on microbiomes to predict various diseases, including liver cirrhosis, colorectal cancer, IBD, obesity, and type 2 diabetes.
 

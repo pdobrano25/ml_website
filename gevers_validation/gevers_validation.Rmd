@@ -1,5 +1,5 @@
 ---
-title: "Predicting Crohn's Disease (16S)"
+title: "Predicting Crohn's Disease using 16S Data from Biopsies"
 ---
 
 ```{r setup, include=FALSE}
@@ -9,7 +9,6 @@ library("ggplot2")
 
 ```
 
-## Predicting Crohn's disease from biopsy microbiomes
 
 Gevers et al's 2014 Cell Host and Microbe study is one of the first and most highly cited studies on the microbiome in IBD.
 [Link to paper](https://pubmed.ncbi.nlm.nih.gov/24629344/)
