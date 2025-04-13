@@ -107,11 +107,11 @@ mice_log_hist = ggplot(reshape2::melt(as.matrix(mice_log)))+
   labs(x="Log Abundance", y="Frequency", title="Metagenomics (Log-transformed)")
 
 # plot both
-mice_raw_hist|mice_log_hist
+mice_raw_hist/mice_log_hist
 
 ```
 
-The distributions looks much better after log-transforming with a pseudcount added.
+The distributions look much better after log-transforming with a pseudcount added.
 
 ## Building model
 
