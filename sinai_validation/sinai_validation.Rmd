@@ -9,7 +9,7 @@ library("ggplot2")
 
 ```
 
-# **Re-analyzing** the data
+## Predicting IBD using the transcriptome of biopsies
 
 [Argmann et al](https://gut.bmj.com/content/72/7/1271.long) performed RNAseq on a mucosal biopsies and blood from a large cohort of IBD and non-IBD controls. Their primary goal was to construct a "molecular inflammation" score that correlates with established measurements of inflammation. For reasons outlined below, I was unable to validate this analysis. 
 
@@ -21,7 +21,9 @@ Below, we process the dataset and apply machine learning to solve two tasks.
 
 - **Predict IBD in non-inflamed** rectum and ileum biopsy samples using an **ensemble model**.
 
-# Data processing
+# **Re-analyzing** the data
+
+# Loading data
 
 First, let's check the total number of samples and features:
 

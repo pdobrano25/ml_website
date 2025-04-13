@@ -10,7 +10,7 @@ library("ggplot2")
 cache=T
 ```
 
-# **Validating** the analysis
+## Predicting the metabolome using the metagenome composition
 
 The [Borenstein lab](https://github.com/borenstein-lab) published a [study](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01149-z) seeking to predict metabolites in stool microbiomes using genus-level microbe abundances. This is not the first attempt at a research group trying to tackle this problem, [(for example)](https://www.nature.com/articles/s41467-019-10927-1), but the Borenstein group did great work collating several datasets made readily available for others to use.
 
@@ -26,6 +26,7 @@ Below, I focus on only 2 of the datasets Muller studied: FRANZOSA and IHMP. Both
 
 - Extract feature importances and identify bacteria associated with metabolites
 
+# **Validating** the analysis
 
 ## Loading metadata
 

@@ -11,13 +11,15 @@ cache = T
 
 ```
 
-# **Validating** the analysis
+## Predicting IBD using the metabolome
 
 [The Huttenhower Lab](https://huttenhower.sph.harvard.edu/home/) conducted one of the largest and deepest characterizations of the IBD microbiome, incorporating metagenomics, metatranscriptomics, and metabolomics. [This study](https://www.nature.com/articles/s41564-018-0306-4) was published in Nature in 2019.
 
 Their metabolomics data set has been reprocessed and uploaded by the [Borenstein lab](https://github.com/borenstein-lab), available [here](https://github.com/borenstein-lab/microbiome-metabolome-curated-data/tree/main/data/processed_data/FRANZOSA_IBD_2019). These data were incorporated in a [meta-analysis](https://www.nature.com/articles/s41522-022-00345-5) of gut microbiome-metabolome associations.
 
 Towards the end of Franzosa's study, they use Random Forest to classify IBD and non-IBD microbiomes using metabolites, achieving an AUC of 0.92 using 5-fold cross-validation. Here, we attempt to validate this results.
+
+# **Validating** the analysis
 
 ## Loading data
 
