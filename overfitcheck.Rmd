@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Overfitting is a common problem in published studies employing machine learning.
 
-This [review article](https://www.nature.com/articles/s41576-021-00434-9) is a great primer on pitfalls in machine learning studies. They discuss distribution differences, dependent samples, confounding, leaky preprocessing, and unbalanced data sets.
+This [review article](https://www.nature.com/articles/s41576-021-00434-9) is a great primer on pitfalls in machine learning studies, including sources of overfitting. They discuss distribution differences, dependent samples, confounding, leaky pre-processing, and unbalanced data sets.
 
 Below, I want to describe how a researcher can check for sources of overfitting in their data set.
 

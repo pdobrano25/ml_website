@@ -12,7 +12,7 @@ cache=T
 
 # **Validating** the analysis
 
-A recent Nature Microbiology [study](https://www.nature.com/articles/s41564-025-01963-3) reported a metagenomic examination of mice across the lifespan. They found that the microbiome undergoes an accumulation of stochastic events that are relatively irreversible. This means there is a microbial signal associated with aging, which they leveraged to build machine learning age predictor. They also evaluated the impact of fasting and caloric restriction on the microbiome in these mice.
+A recent Nature Microbiology [study](https://www.nature.com/articles/s41564-025-01963-3) conducted a metagenomic examination of mice across the lifespan. They found that the microbiome undergoes an accumulation of stochastic events that are relatively irreversible. This means there is a microbial signal associated with aging, which they leveraged to build a machine learning-based age predictor. They also evaluated the impact of fasting and caloric restriction on the microbiome in these mice.
 
 Their data are available [here](https://github.com/levlitichev/DRiDO_microbiome/tree/main/data).
 
@@ -20,7 +20,7 @@ I was most interested in their Figure 5I, where they tested the hypothesis that 
 
 Let's see if we can validate these results, and then test other models to see if this was an artefact of the algorithm they chose.
 
-**Note:** I have to mention that this dataset was a dream to work with. The authors clearly made a good effort to make their data as user friendly as possible.
+**Note:** I have to mention that this dataset was very easy to work with. The authors clearly put a good effort into making their data as user friendly as possible.
 
 ## Loading data
 
@@ -40,9 +40,7 @@ It looks like all of the data we need are pre-packed in the feature table. (It's
 
 ## Processing metadata
 
-Let's unpack the metadata from the column names, which appears to follow the format:  Genotype_Diet_Mouse_Time. Of note, we need to subset to these timepoints: 5, 10, 16, 22 and 28 months.
-
-Then we'll check the distributions of samples.
+Let's unpack the metadata from the column names, which appears to follow the format:  Genotype_Diet_Mouse_Time. Of note, we need to subset to these timepoints: 5, 10, 16, 22 and 28 months.Then we'll check the distributions of samples.
 
 ```{r unpack_metadata, echo=F, results=T, plot=T, warning=F, message=F }
 
@@ -196,19 +194,19 @@ mice_pred_df_plot
 
 ```
 
-I've added a regression line and lines indicating the median predicted value per diet group.
+I've added regression lines, and lines indicating the median predicted age per diet group.
 
-It looks quite clear that mice from the DR (dietary restriction) group are being predicted to have an older age than what is true.
+It's quite clear that mice from the DR (dietary restriction) group are being predicted to have an older age than what is true. So, we're able to reproduce the authors' findings.
 
 # **Extending** the analysis
 
 ## Part 1: Fixing pseudoreplicates
 
-If we examined the data we're working with closely, we'll have recognized the author committed one of the common mistakes of machine learning: [pseudoreplicates](https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates).
+If we examined the data closely, we'll have recognized the author committed a common error in machine learning: ignoring [pseudoreplicates](https://pdobrano25.github.io/ml_website/overfitcheck.html#Pseudoreplicates).
 
-Since they were trying to make a point about a previous hypothesis, rather than build a generalizable model, I wouldn't consider this a grievous case of overfitting. However, I would like to see how a properly engineered random forest would perform. Namely, was their upshift in predictions actually an artefact of overfitting.
+Since they were trying to make a point about a previous hypothesis, rather than build a generalizable model, I wouldn't consider this a grievous case of overfitting. However, I would like to see how a properly engineered random forest would perform. For instance, was their upshift in predictions actually an artefact of overfitting?
 
-So, let's build a stratified random forest such that only 1 sample per mouse is selected for fold. We'll repeat 15 times and take the mean predictions across the stratifications. 
+So, let's build a stratified random forest such that only 1 sample per mouse is selected per iteration. We'll repeat 15 times and take the mean predictions across the stratifications. 
 
 ```{r stratify_ranger, echo=F, results=T, plot=T, warning=F, message=F }
 
@@ -229,9 +227,9 @@ mouse.subset.list = do.call(rbind, lapply(1:15, function(iter){
 
 if(cache == F){
 # let's build a predictor
-mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
-  mouse.subset.list.subset = subset(mouse.subset.list, iter == iter)
-  data.subset = mice_al[as.numeric(mouse.subset.list$sample),]
+mice_pred_stratified = do.call(rbind, lapply(1:15, function(seed){
+  mouse.subset.list.subset = subset(mouse.subset.list, iter == seed)
+  data.subset = mice_al[as.numeric(mouse.subset.list.subset$sample),]
   set.seed(25)
   mice_rf_model = ranger::ranger(age ~.,
                data.subset)
@@ -252,7 +250,7 @@ mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
   # merge
   mice_pred_df = rbind(mice_al_pred_df,
                        mice_dr_pred_df) %>% data.frame()
-  mice_pred_df$iter = iter
+  mice_pred_df$iter = seed
   mice_pred_df
 }))
 
@@ -314,23 +312,21 @@ mice_pred_df_plot2 = ggplot(mice_pred_stratified_mean)+ # convert weeks to month
 mice_pred_df_plot+labs(title="Pseudoreplicates Kept") | mice_pred_df_plot2
 ```
 
-Removing pseudoreplicates tells a very different story! Most striking is the change in *slope* of the DR predictions. There is a big upshift in predictions at the first time point (5 months), but it gets neutralized around 16 months, and then reverses at 28 months. Also, it's not a linear shift. Predictions plateau between 16 and 22 months, suggesting the calorie restriction/fasting does not "age" evenly across the lifespan, and may actually *"stop aging" after middle age*.
+Surprisingly, removing pseudoreplicates appears to have had a negligible impact on the results.
 
-Another detail to notice, is the AL predictions become more accurate. When pseudoreplicates are kept, 5 month samples are predicted to be ~10 months, and 28 month samples are predicted to be ~19 months. When pseudoreplicates are removed, 5 months = 5 months, and 28 months = 28 months. This suggests the original AL predictions were **downshifted**, likely overfitting the pseudoreplicates towards their mean age value, and removing pseudoreplicates removed this bias.
-
-Our summary statistic of y-intercept is no longer as useful, and consequently, it's unclear how to proceed. We aren't solving an "optimization" problem any more. 
-
-So, let's test other models and just see if the overall conclusions change.
+Let's test other models and just see if other models reveal other patterns.
 
 ## Part 2. Additional models
 
-We'll build these models
+We'll build these models:
 
-```{r}
+```{r ml_models, echo=T}
+
 ml.models = c("gbm","glmnet","ranger","svmLinear","svmRadial","xgbTree")
+
 ```
 
-and consider each of the 15 stratifications as an iteration, and take the mean.
+We'll consider each of the 15 stratifications as an iteration and take their mean predictions.
 
 ```{r stratify_models_loop, echo=F, results=T, plot=T, warning=F, message=F }
 
@@ -372,13 +368,13 @@ mice_pred_stratified_loop = do.call(rbind, lapply(ml.models, function(algo){
 # take mean of 5 fold predictions
 
 # let's build a predictor
-mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
+mice_pred_stratified = do.call(rbind, lapply(1:15, function(seed){
   
-    print(paste0(algo, " iter ", iter))
+    print(paste0(algo, " iter ", seed))
 
   
-  mouse.subset.list.subset = subset(mouse.subset.list, iter == iter)
-  data.subset = mice_al[as.numeric(mouse.subset.list$sample),]
+  mouse.subset.list.subset = subset(mouse.subset.list, iter == seed)
+  data.subset = mice_al[as.numeric(mouse.subset.list.subset$sample),]
   
   set.seed(25)
   mice_model = caret::train(
@@ -387,7 +383,7 @@ mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
     trControl = caret::trainControl(method="cv", 
                                     number = 5,
                                     savePred=T),
-    metric = "RMSE",
+    metric = "MAE",
     method = algo,
     preProc = c("center", "scale")) %>% suppressWarnings()
   
@@ -412,26 +408,20 @@ mice_pred_stratified = do.call(rbind, lapply(1:15, function(iter){
   # merge
   mice_pred_df = rbind(mice_al_pred_df,
                        mice_dr_pred_df) %>% data.frame()
-  mice_pred_df$iter = iter
+  mice_pred_df$iter = seed
+  # track MAE (error, by weeks)
+  mice_pred_df$MAE = min(mice_model$results$MAE)
+  # track algorithm
+  mice_pred_df$model = algo
+  #
   mice_pred_df
 }))
 
 
-# take mean predictions
-mice_pred_stratified_mean = mice_pred_stratified %>%
-  mutate(sample = gsub("\\..*", "", sample)) %>%
-  group_by(sample) %>%
-  mutate(mean.pred = mean(pred)) %>%
-  dplyr::select(-pred, -iter) %>% distinct() %>% data.frame()
-
-mice_pred_stratified_mean$model = algo
-
-mice_pred_stratified_mean
-
 }))
 
   t2 <- Sys.time()
-  # ~ 2.2 hours
+  # ~ 12 min
   t2-t1
   
 saveRDS(mice_pred_stratified_loop, "../saved/mice_pred_stratified_loop.Rds")
@@ -440,16 +430,20 @@ saveRDS(mice_pred_stratified_loop, "../saved/mice_pred_stratified_loop.Rds")
 
 mice_pred_stratified_loop = readRDS("../saved/mice_pred_stratified_loop.Rds")
 
-# plot
-
+# take mean predictions
+mice_pred_stratified_mean = mice_pred_stratified_loop %>%
+  mutate(sample = gsub("\\..*", "", sample)) %>%
+  group_by(sample, model) %>%
+  mutate(mean.pred = mean(pred)) %>%
+  dplyr::select(-pred, -iter) %>% distinct() %>% data.frame()
 
 # add months
-mice_pred_stratified_loop = merge(mice_pred_stratified_loop,
+mice_pred_stratified_mean = merge(mice_pred_stratified_mean,
                      mice_metadata[,c("sample", "mouse", "months")], by="sample")
-mice_pred_stratified_loop$month = round(mice_pred_stratified_loop$months, digits=0)
+mice_pred_stratified_mean$month = round(mice_pred_stratified_mean$months, digits=0)
 
 # calculate median per month
-mice_pred_stratified_loop_mean = mice_pred_stratified_loop %>%
+mice_pred_stratified_loop_mean = mice_pred_stratified_mean %>%
   group_by(month, diet, model) %>%
   mutate(med.true = median(true/4.34),
          med.pred = median(mean.pred/4.34)) %>%
@@ -457,16 +451,16 @@ mice_pred_stratified_loop_mean = mice_pred_stratified_loop %>%
 
 
 # visualize
-mice_pred_loop_plot = ggplot(mice_pred_stratified_loop)+ # convert weeks to months
+mice_pred_loop_plot = ggplot(mice_pred_stratified_mean)+ # convert weeks to months
   # add regression lines
-    geom_smooth(method="lm", data=subset(mice_pred_stratified_loop, diet == "DR"),
+    geom_smooth(method="lm", data=subset(mice_pred_stratified_mean, diet == "DR"),
        aes(x = true/4.34, y = mean.pred/4.34, color="DR"))+
-  geom_smooth(method="lm", data=subset(mice_pred_stratified_loop, diet == "AL"),
+  geom_smooth(method="lm", data=subset(mice_pred_stratified_mean, diet == "AL"),
        aes(x = true/4.34, y = mean.pred/4.34, color="AL"))+
   # add points
-  geom_jitter(data=subset(mice_pred_stratified_loop, diet == "DR"),
+  geom_jitter(data=subset(mice_pred_stratified_mean, diet == "DR"),
        aes(x = true/4.34, y = mean.pred/4.34, fill="DR"), width=0.6, shape=21, alpha=1)+
-  geom_jitter(data=subset(mice_pred_stratified_loop, diet == "AL"),
+  geom_jitter(data=subset(mice_pred_stratified_mean, diet == "AL"),
        aes(x = true/4.34, y = mean.pred/4.34, fill="AL"), shape=21,alpha=1)+
   # add medians
   geom_segment(data=subset(mice_pred_stratified_loop_mean, diet == "AL") %>% group_by(),
@@ -483,17 +477,34 @@ mice_pred_loop_plot = ggplot(mice_pred_stratified_loop)+ # convert weeks to mont
        y="Predicted age (months)",
        fill = "Diet",
        title="Pseudoreplicates Removed")+
-  facet_wrap(~model)
+  facet_wrap(~model, scales="free")
 
 mice_pred_loop_plot
 
 ```
 
-There is some model-specificity with this effect. GBM, random forest, svmRadial, and XGBoost predictions plateau at 22 months, while elastic net and svmLinear plateau 6 months later at the final time point. Interestingly, these models can be defined as "non-linear" vs "linear" models according to when the predictions plateau.
+There is some [model-specificity](https://pdobrano25.github.io/ml_website/ml_figures.html) in predictive patterns, but overall, these results are consistent with the original findings of the study.
 
-Nonetheless, these results leave a question mark after the conclusions made in the original study.
+We can also examine the MAE (mean absolute error, in weeks) of each of the models, and infer which of these models is telling a more accurate story:
+
+```{r models_loop_mae, echo=F, results=T, plot=T, warning=F, message=F }
+
+ggplot(mice_pred_stratified_loop[,c("model","iter", "MAE")] %>% distinct())+
+  geom_violin(aes(x=model, y=MAE, fill=model), alpha=0.2)+
+  geom_point(data=mice_pred_stratified_loop[,c("model", "MAE")] %>%
+               group_by(model) %>% mutate(mean.mae = median(MAE)),
+             aes(x=model, y=mean.mae, fill=model), shape=21, size=3)+
+  theme_minimal()+theme(legend.position="none",
+                        axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
+  labs(x="", y="MAE")
+
+
+```
+
+GBM, elastic net, and XGBoost are a razors' edge better than random Forest. An interesting detail worth noting is that these 3 models expanded the prediction range, such that we can now see ages upwards of 28 weeks across the groups.
+
+Nonetheless, I don't think we can make a conclusion that differs from the original study.
 
 # Conclusions
 
-To conclude, we found that one of the study's conclusions changes when machine learning is engineered properly. 
-
+To conclude, we were able to reproduce the authors' conclusions with this task. Calorie-restricted or fasting mice's microbiomes have a signal consistent with an older microbiome. We also showed that this conclusion is robust to pseudoreplicates and model choice.

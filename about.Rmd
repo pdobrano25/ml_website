@@ -29,3 +29,9 @@ For inquiries, comments, or requests for collaboration, please email pdobr062@uo
   <iframe src="docs/logo-black.png" style="width: 30px; height: 30px; border: none; vertical-align: middle;"></iframe>
   @PDobrano
 </a>
+
+<a href="https://www.linkedin.com/in/peter-dobranowski/" target="_blank">
+  <iframe src="docs/linkedin_icon.png" style="width: 30px; height: 30px; border: none; vertical-align: middle;"></iframe>
+  @Peter-Dobranowski
+</a>
+

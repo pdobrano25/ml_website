@@ -65,11 +65,16 @@ for (f in files) {
   output_dir <- file.path("docs", dirname(f))
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   
-  # Copy logo.png to the docs/images directory
-  logo_source <- "logo-black.png"
-  logo_dest <- file.path("docs", "logo-black.png")
-  dir.create(dirname(logo_dest), recursive = TRUE, showWarnings = FALSE)
-  file.copy(logo_source, logo_dest, overwrite = TRUE)
+  # Copy Twitter/X logo.png to the docs/images directory
+  twitter_logo_source <- "logo-black.png"
+  twitter_logo_dest <- file.path("docs", "logo-black.png")
+  dir.create(dirname(twitter_logo_dest), recursive = TRUE, showWarnings = FALSE)
+  file.copy(twitter_logo_source, twitter_logo_dest, overwrite = TRUE)
+  # and LinkedIn
+  linkedin_logo_source <- "linkedin_icon.png"
+  linkedin_logo_dest <- file.path("docs", "linkedin_icon.png")
+  dir.create(dirname(linkedin_logo_dest), recursive = TRUE, showWarnings = FALSE)
+  file.copy(linkedin_logo_source, linkedin_logo_dest, overwrite = TRUE)
   
   # Define output options
   output_options <- list(
