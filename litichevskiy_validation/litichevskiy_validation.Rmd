@@ -15,7 +15,7 @@ A recent Nature Microbiology [study](https://www.nature.com/articles/s41564-025-
 
 Their data are available [here](https://github.com/levlitichev/DRiDO_microbiome/tree/main/data).
 
-I was most interested in their Figure 5I, where they tested the hypothesis that caloric restriction/fasting "de-ages" the microbiome. They built a random forest regressor using mice fed *ad libitum* to predict the ages of mice on calorie restriction/fasting regimens. Surprisingly, the predictor guessed their ages were *older* than they actually were, disproving the hypothesis.
+I was most interested in their [Figure 5I](https://www.nature.com/articles/s41564-025-01963-3/figures/5), where they tested the hypothesis that caloric restriction/fasting "de-ages" the microbiome. They built a random forest regressor using mice fed *ad libitum* to predict the ages of mice on calorie restriction/fasting regimens. Surprisingly, the predictor guessed their ages were *older* than they actually were, disproving the hypothesis.
 
 Let's see if we can validate these results, and then test other models to see if this was an artefact of the algorithm they chose.
 
@@ -116,7 +116,7 @@ The distributions look much better after log-transforming with a pseudcount adde
 
 ## Building model
 
-Now let's seek to validate their analysis performed in Fig5I. That is, build a random forest regressor using the mice fed *ad libitum* and predict the ages of the calorie restriction/fasting mice. Remember, our goal isn't to achieve high accuracy.
+Now let's seek to validate their analysis performed in [Fig5I](https://www.nature.com/articles/s41564-025-01963-3/figures/5). That is, build a random forest regressor using the mice fed *ad libitum* and predict the ages of the calorie restriction/fasting mice. Remember, our goal isn't to achieve high accuracy.
 
 ```{r build_models, echo=F, results=T, plot=T, warning=F, message=F }
 
@@ -209,7 +209,7 @@ Since they were trying to make a point about a previous hypothesis, rather than 
 
 So, let's build a stratified random forest such that only 1 sample per mouse is selected per iteration. We'll repeat 15 times and take the mean predictions across the stratifications. 
 
-```{r stratify_ranger, echo=F, results=T, plot=T, warning=F, message=F }
+```{r stratify_ranger, echo=F, results=T, plot=T, warning=F, message=F, out.height = "50%"}
 
 # establish stratified folds
 # 1, list out mice (in order of AL data)

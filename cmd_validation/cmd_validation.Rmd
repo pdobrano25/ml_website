@@ -12,8 +12,7 @@ library("ggplot2")
 
 The [**curatedMetagenomicData**](https://waldronlab.io/curatedMetagenomicData/) (**CMD**) is a large collection of microbiome datasets, re-processed using a standard pipeline to minimize batch effects.
 
-Ning et al. (2023) perform a meta-analysis of microbiome studies using the CMD to predict IBD from non-IBD controls.
-[Link to paper](https://www.nature.com/articles/s41467-023-42788-0)
+Ning et al. (2023) perform a [meta-analysis](https://www.nature.com/articles/s41467-023-42788-0) of microbiome studies using the CMD to predict IBD from non-IBD controls.
 
 The authors apply *leave-one-cohort-out* (LOCO) cross-validation to evaluate whether larger, multi-cohort datasets can be used to predict IBD in a validation cohort.
 
