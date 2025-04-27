@@ -11,7 +11,7 @@
 
 
 
-<title>MachOmics</title>
+<title>MacOmics</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1371,80 +1371,6 @@ padding: 0;
 </style>
 
 
-<style type="text/css">
-.dropdown-submenu {
-position: relative;
-}
-.dropdown-submenu>.dropdown-menu {
-top: 0;
-left: 100%;
-margin-top: -6px;
-margin-left: -1px;
-border-radius: 0 6px 6px 6px;
-}
-.dropdown-submenu:hover>.dropdown-menu {
-display: block;
-}
-.dropdown-submenu>a:after {
-display: block;
-content: " ";
-float: right;
-width: 0;
-height: 0;
-border-color: transparent;
-border-style: solid;
-border-width: 5px 0 5px 5px;
-border-left-color: #cccccc;
-margin-top: 5px;
-margin-right: -10px;
-}
-.dropdown-submenu:hover>a:after {
-border-left-color: #adb5bd;
-}
-.dropdown-submenu.pull-left {
-float: none;
-}
-.dropdown-submenu.pull-left>.dropdown-menu {
-left: -100%;
-margin-left: 10px;
-border-radius: 6px 0 6px 6px;
-}
-</style>
-
-<script type="text/javascript">
-// manage active state of menu based on current page
-$(document).ready(function () {
-  // active menu anchor
-  href = window.location.pathname
-  href = href.substr(href.lastIndexOf('/') + 1)
-  if (href === "")
-    href = "index.html";
-  var menuAnchor = $('a[href="' + href + '"]');
-
-  // mark the anchor link active (and if it's in a dropdown, also mark that active)
-  var dropdown = menuAnchor.closest('li.dropdown');
-  if (window.bootstrap) { // Bootstrap 4+
-    menuAnchor.addClass('active');
-    dropdown.find('> .dropdown-toggle').addClass('active');
-  } else { // Bootstrap 3
-    menuAnchor.parent().addClass('active');
-    dropdown.addClass('active');
-  }
-
-  // Navbar adjustments
-  var navHeight = $(".navbar").first().height() + 15;
-  var style = document.createElement('style');
-  var pt = "padding-top: " + navHeight + "px; ";
-  var mt = "margin-top: -" + navHeight + "px; ";
-  var css = "";
-  // offset scroll position for anchor links (for fixed navbar)
-  for (var i = 1; i <= 6; i++) {
-    css += ".section h" + i + "{ " + pt + mt + "}\n";
-  }
-  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
-  document.head.appendChild(style);
-});
-</script>
 
 <!-- tabsets -->
 
@@ -1564,7 +1490,6 @@ border-radius: 0px;
 
 
 
-
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
@@ -1637,77 +1562,49 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">MachOmics</h1>
 
 </div>
 
 
 <div id="machine-learning-for-omics-data" class="section level2">
 <h2>Machine Learning for Omics Data</h2>
-<p><a href="https://pdobrano25.github.io/ml_website/machomics.html"><strong>MachOmics</strong></a>:
-drag-and-drop data to quickly build a machine learning model - with
-plots for performance metrics and interpretable feature importances.</p>
-<p><strong>Vignettes</strong>: examples of machine learning workflows
-(in R) are provided based on existing publications by other research
-groups. In most cases, analyses are validated and extended.</p>
-<ul>
-<li><a href="https://pdobrano25.github.io/ml_website/mlp_validation.html">Microbial
-Load Predictor (16S)</a>: Validating the performance of a novel tool
-that predicts the number of bacterial cells in a metagenomic sample. A
-<em>regression problem</em> with internal and external validation.
-<em>Additional models</em> are evaluated.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/gevers_validation.html">Predicting
-Crohn’s Disease (16S)</a>: Validating a study from 2014 using (low
-biomass) microbiome samples obtained from biopsies in new-onset Crohn’s
-disease. Results could not be validated for any discernible reason. Only
-internal validation was employed. <em>Additional models</em> are
-evaluated.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/cmd_validation.html">Predicting
-IBD (Metagenome)</a>: Validating a meta-analysis from 2023 using stool
-microbiome samples obtained from 3 cohorts in the
-curatedMetagenomicData. 3 other cohorts were not available to download,
-so results could not be fully validated. <em>Hybrid up/down
-sampling</em> is applied. <em>Additional models</em> are evaluated.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/sinai_validation.html">Predicting
-IBD (RNAseq)</a>: Re-analyzing a large RNAseq dataset obtained from
-mucosal biopsies of CD, UC, and non-IBD controls. Focusing on rectum
-biopsies, applying machine learning to predict inflamed vs non-inflamed
-samples, and then predicting IBD using non-inflamed samples.
-<em>Downsampling</em> and <em>ensemble learning</em> are applied.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/metaaml_validation.html">Predicting
-Disease (Metagenome)</a>: Validating a meta-analysis of microbiome data
-linked to several different diseases. <em>Downsampling</em> and
-<em>multiclass learning</em> are applied, and <em>additional models</em>
-are evaluated.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/hmp_validation.html">Predicting
-IBD (Metabolome)</a>: Validating a metabolomic analysis of microbiome
-data from IBD and non-IBD subjects. <em>Downsampling</em> is applied and
-<em>additional models</em> are evaluated. <em>Feature importances</em>
-are extracted and contextualized with the literature.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/muller_validation.html">Predicting
-Metabolites (Metagenome)</a>: Validating the performances of machine
-learning in predicting metabolite abundances using genus-level
-metagenomic data in IBD microbiomes. A series of <em>regression
-problems</em> with internal and external validation. <em>Feature
-importances</em> are extracted and contextualized with the literature.
-<em>Additional models</em> are evaluated.</li>
-<li><a href="https://pdobrano25.github.io/ml_website/litichevskiy_validation.html">Predicting
-Mouse Age (Metagenome)</a>: Validating the hypothesis that a model
-trained on ad libitum-fed mice microbiomes will predict
-calorie-restricted mice ages to be higher than they actually are. A
-<em>regression problem</em> without optimization. Conclusions were not
-affected by the removal of <em>pseudoreplicates</em>. <em>Additional
-models</em> are evaluated.</li>
-</ul>
-<p><a href="https://pdobrano25.github.io/ml_website/overfitcheck.html"><strong>Overfit
-Check</strong></a>: comments on poor machine learning engineering
-leading to <strong>overfitting</strong>.</p>
-<p><a href="https://pdobrano25.github.io/ml_website/ml_figures.html"><strong>Models</strong></a>:
-common machine learning algorithms are listed, illustrated, and
-described.</p>
-<p><a href="https://pdobrano25.github.io/ml_website/about.html"><strong>About</strong></a>:
-source code for analyses and a list of publications by Peter
-Dobranowski.</p>
+<style>
+.navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }
+body { padding-top: 70px; }
+</style>
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">MacOmics</h1>
+
+</div>
+
+
+<div id="machomics-machine-learning-pipeline" class="section level2">
+<h2>MachOmics: Machine Learning Pipeline</h2>
+<p>Launch the interactive <strong>MachOmics</strong> application to
+build machine learning models with your omics data. Upload your feature
+data and metadata, configure the model, and visualize performance
+metrics and feature importances.</p>
+<p><a href="https://pdobrano.shinyapps.io/machomics/" target="_blank" class="btn btn-primary">Launch
+MachOmics App</a></p>
+<style>
+.btn-primary {
+display: inline-block;
+padding: 10px 20px;
+background-color: #337ab7;
+color: white;
+text-decoration: none;
+border-radius: 4px;
+font-size: 16px;
+}
+.btn-primary:hover {
+background-color: #286090;
+color: white;
+}
+</style>
 </div>
 
 

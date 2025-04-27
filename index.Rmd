@@ -1,14 +1,14 @@
 ---
-title: "Machine Learning Projects"
+title: "MachOmics"
 site: rmarkdown::default_site_generator
 
 ---
 
-This site is a portfolio of projects related to tabular machine learning.
+## Machine Learning for Omics Data
 
-Its objective is to provide examples of workflows that enable predicting *something* from high dimensional data.
+[**MachOmics**](https://pdobrano25.github.io/ml_website/machomics.html): drag-and-drop data to quickly build a machine learning model - with plots for performance metrics and interpretable feature importances.
 
-**Projects**: machine learning workflows (in R) are provided based on existing publications by other research groups. In most cases, analyses are validated and extended.
+**Vignettes**: examples of machine learning workflows (in R) are provided based on existing publications by other research groups. In most cases, analyses are validated and extended.
 
  - [Microbial Load Predictor (16S)](https://pdobrano25.github.io/ml_website/mlp_validation.html): Validating the performance of a novel tool that predicts the number of bacterial cells in a metagenomic sample. A *regression problem* with internal and external validation. *Additional models* are evaluated.
  - [Predicting Crohn's Disease (16S)](https://pdobrano25.github.io/ml_website/gevers_validation.html): Validating a study from 2014 using (low biomass) microbiome samples obtained from biopsies in new-onset Crohn's disease. Results could not be validated for any discernible reason. Only internal validation was employed. *Additional models* are evaluated.

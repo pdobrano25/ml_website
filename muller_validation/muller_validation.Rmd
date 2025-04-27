@@ -533,11 +533,11 @@ muller_ranger_output = do.call(rbind, lapply(1:15, function(iter){
 t2 <- Sys.time()
 t2-t1 # 37 min
 
-saveRDS(muller_ranger_output, "../muller_ranger_output.Rds")
+saveRDS(muller_ranger_output, "../saved/muller_ranger_output.Rds")
 
 }
 
-muller_ranger_output = readRDS("../muller_ranger_output.Rds")
+muller_ranger_output = readRDS("../saved/muller_ranger_output.Rds")
 
 ```
 
@@ -611,11 +611,11 @@ muller_loop_output = do.call(rbind, lapply(1:15, function(iter){
 t2 <- Sys.time()
 t2-t1 # 9 hours total
 
-saveRDS(muller_loop_output, "../muller_loop_output.Rds")
+saveRDS(muller_loop_output, "../saved/muller_loop_output.Rds")
 
 }
 
-muller_loop_output = readRDS("../muller_loop_output.Rds")
+muller_loop_output = readRDS("../saved/muller_loop_output.Rds")
 
 ```
 

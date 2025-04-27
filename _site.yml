@@ -1,15 +1,17 @@
-name: "PDobrano"
+name: "MachOmics"
 
 output_dir: "docs"
 
 include: _includes/navbar.html
   
 navbar:
-  title: "PDobrano"
+  title: "MachOmics"
   left:
     - text: "Home"
       href: index.html
-    - text: "Projects"
+    - text: "MachOmics"
+      href: machomics.html
+    - text: "Vignettes"
       menu:
         - text: "Predicting Microbial Load (16S)"
           href: mlp_validation.html

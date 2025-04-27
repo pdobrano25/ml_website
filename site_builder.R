@@ -25,8 +25,15 @@ rmarkdown::render(input = "index.Rmd",
 html_content <- readLines("index.html", warn = FALSE)
 nav_start <- grep("<div.*navbar", html_content, ignore.case = TRUE)[1]
 nav_end <- grep("<p>", html_content[nav_start:length(html_content)])[1] + nav_start -2
-nav_remove <- grep("<h1 class=\"title toc-ignore\">Machine Learning Projects</h1>", html_content)
+nav_remove <- grep("<h1 class=\"title toc-ignore\">MachOmics</h1>", html_content)
 nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
+
+# Modify navbar to replace title with logo
+navbar_html <- html_content[nav_index]
+title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">MachOmics</a>", navbar_html)
+navbar_html[title_line] <- '<a class="navbar-brand" href="index.html"><img src="machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
+
+
 navbar_html <- c(
   html_content[nav_index],
   '<style>',
@@ -45,6 +52,7 @@ navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
 
 # List files
 files <- c("index.Rmd", 
+           "MachOmics/machomics.Rmd",
            "about.Rmd", 
            "mlp_validation/mlp_validation.Rmd",
            "gevers_validation/gevers_validation.Rmd", 
@@ -75,6 +83,11 @@ for (f in files) {
   linkedin_logo_dest <- file.path("docs", "linkedin_icon.png")
   dir.create(dirname(linkedin_logo_dest), recursive = TRUE, showWarnings = FALSE)
   file.copy(linkedin_logo_source, linkedin_logo_dest, overwrite = TRUE)
+  # and MachOmics
+  machomics_logo_source <- "machomics_flat_white.png"
+  machomics_logo_dest <- file.path("docs", "machomics_flat_white.png")
+  dir.create(dirname(machomics_logo_dest), recursive = TRUE, showWarnings = FALSE)
+  file.copy(machomics_logo_source, machomics_logo_dest, overwrite = TRUE)
   
   # Define output options
   output_options <- list(
@@ -100,4 +113,5 @@ t2-t1
 # Apr 4 2025 = 12 min (added hmp_validation)
 # Apr 10 2025 = 17 min (added muller_validation)
 # Apr 12 2025 = 20 min (added litichevskiy_validation)
+# Apr 27 2025 = 35 min (added shiny app and logo
 
