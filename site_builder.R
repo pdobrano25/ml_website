@@ -31,7 +31,7 @@ nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
 # Modify navbar to replace title with logo
 navbar_html <- html_content[nav_index]
 title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">MachOmics</a>", navbar_html)
-navbar_html[title_line] <- '<a class="navbar-brand" href="index.html"><img src="docs/machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
+navbar_html[title_line] <- '<a class="navbar-brand" href="index.html"><img src="machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
 
 
 navbar_html <- c(
@@ -39,6 +39,7 @@ navbar_html <- c(
   '<style>',
   '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',  # Keep fixed behavior
   '  body { padding-top: 70px; }',  # Offset content below navbar (adjust 70px as needed)
+  '  .navbar-brand img { vertical-align: middle; }',
   '</style>'
 )
 # Write navbar.html
@@ -73,21 +74,20 @@ for (f in files) {
   output_dir <- file.path("docs", dirname(f))
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   
-  # Copy Twitter/X logo.png to the docs/images directory
-  twitter_logo_source <- "logo-black.png"
-  twitter_logo_dest <- file.path("docs", "logo-black.png")
-  dir.create(dirname(twitter_logo_dest), recursive = TRUE, showWarnings = FALSE)
-  file.copy(twitter_logo_source, twitter_logo_dest, overwrite = TRUE)
-  # and LinkedIn
-  linkedin_logo_source <- "linkedin_icon.png"
-  linkedin_logo_dest <- file.path("docs", "linkedin_icon.png")
-  dir.create(dirname(linkedin_logo_dest), recursive = TRUE, showWarnings = FALSE)
-  file.copy(linkedin_logo_source, linkedin_logo_dest, overwrite = TRUE)
-  # and MachOmics
-  machomics_logo_source <- "machomics_flat_white.png"
-  machomics_logo_dest <- file.path("docs", "machomics_flat_white.png")
-  dir.create(dirname(machomics_logo_dest), recursive = TRUE, showWarnings = FALSE)
-  file.copy(machomics_logo_source, machomics_logo_dest, overwrite = TRUE)
+  # Copy images to docs/
+  dir.create("docs", recursive = TRUE, showWarnings = FALSE)
+  for (img in c("logo-black.png", "linkedin_icon.png", "machomics_flat_white.png")) {
+    img_source <- img
+    img_dest <- file.path("docs", img)
+    if (file.exists(img_source)) {
+      file.copy(img_source, img_dest, overwrite = TRUE)
+    }
+  }
+  # Copy logo to MachOmics/ for Shiny app
+  dir.create("MachOmics", recursive = TRUE, showWarnings = FALSE)
+  if (file.exists("machomics_flat_white.png")) {
+    file.copy("machomics_flat_white.png", "MachOmics/machomics_flat_white.png", overwrite = TRUE)
+  }
   
   # Define output options
   output_options <- list(
@@ -97,7 +97,7 @@ for (f in files) {
   )
   
   # Conditionally add navbar (otherwise navbar gets doubled)
-  if (!(basename(f) %in% c("index.Rmd","overfitcheck.Rmd", "about.Rmd"))) {
+  if (!(basename(f) %in% c("index.Rmd", "machomics.Rmd", "overfitcheck.Rmd", "about.Rmd"))) {
     output_options$includes <- list(before_body = navbar.path)
   }
   

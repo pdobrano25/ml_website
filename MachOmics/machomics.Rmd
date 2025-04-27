@@ -1,5 +1,5 @@
 ---
-title: "MacOmics"
+title: "MachOmics: Machine Learning for Omics Data"
 ---
 
 Launch the interactive **MachOmics** application to build machine learning models with your omics data. Upload your feature data and metadata, configure the model, and visualize performance metrics and feature importances.
@@ -21,3 +21,6 @@ Launch the interactive **MachOmics** application to build machine learning model
   color: white;
 }
 </style>
+
+**Cite this app**: If you found this app helpful, please cite Peter Dobranowski, https://pdobrano25.github.io/ml_website/index.html
+
