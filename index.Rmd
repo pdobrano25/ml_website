@@ -4,8 +4,6 @@ site: rmarkdown::default_site_generator
 
 ---
 
-## Machine Learning for Omics Data
-
 [**MachOmics**](https://pdobrano25.github.io/ml_website/machomics.html): drag-and-drop data to quickly build a machine learning model - with plots for performance metrics and interpretable feature importances.
 
 **Vignettes**: examples of machine learning workflows (in R) are provided based on existing publications by other research groups. In most cases, analyses are validated and extended.

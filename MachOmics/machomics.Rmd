@@ -2,8 +2,6 @@
 title: "MacOmics"
 ---
 
-## MachOmics: Machine Learning Pipeline
-
 Launch the interactive **MachOmics** application to build machine learning models with your omics data. Upload your feature data and metadata, configure the model, and visualize performance metrics and feature importances.
 
 <a href="https://pdobrano.shinyapps.io/machomics/" target="_blank" class="btn btn-primary">Launch MachOmics App</a>

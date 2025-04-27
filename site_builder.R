@@ -31,7 +31,7 @@ nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
 # Modify navbar to replace title with logo
 navbar_html <- html_content[nav_index]
 title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">MachOmics</a>", navbar_html)
-navbar_html[title_line] <- '<a class="navbar-brand" href="index.html"><img src="machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
+navbar_html[title_line] <- '<a class="navbar-brand" href="index.html"><img src="docs/machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
 
 
 navbar_html <- c(
