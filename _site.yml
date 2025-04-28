@@ -9,7 +9,7 @@ output:
 include: _includes/navbar.html
   
 navbar:
-  title: '<a href="index.html"><img src="docs/machomics_flat_white.png" alt="MachOmics" style="height:30px; vertical-align:middle;horizontal-align:middle;"></a>'
+  title: '<a href="index.html"><img src="docs/machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
   left:
     - text: "Home"
       href: index.html
