@@ -18,3 +18,12 @@ lattice
 caret
 yaml
 patchwork
+shiny
+rsconnect
+shinydashboard
+ggridges
+reshape2
+ranger
+pROC
+rstatix
+purrr
