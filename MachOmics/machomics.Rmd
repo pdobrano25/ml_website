@@ -22,5 +22,13 @@ Launch the interactive **MachOmics** application to build machine learning model
 }
 </style>
 
-**Cite this app**: If you found this app helpful, please cite Peter Dobranowski, https://pdobrano25.github.io/ml_website/index.html
+## Methods
+
+
+## Citation
+
+If you found this app helpful, please cite **Peter Dobranowski https://pdobrano25.github.io/ml_website/index.html**
+
+
+
 
