@@ -37,6 +37,15 @@ shiny_meta <- readRDS("shiny_meta.Rds")
 ui <- fluidPage(
   title = "MachOmics",
   tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
+  tags$div(class = "navbar navbar-fixed-top",
+           tags$a(href = "https://pdobrano25.github.io/ml_website/", 
+                  tags$img(src = "machomics_flat_white.png", alt = "MachOmics", style = "height:30px;")),
+           tags$ul(class = "nav navbar-nav navbar-right",
+                   tags$li(tags$a(href = "https://pdobrano25.github.io/ml_website/", "Home")),
+                   tags$li(tags$a(href = "https://pdobrano25.github.io/ml_website/machomics.html", "MachOmics", class = "active")),
+                   tags$li(tags$a(href = "https://pdobrano25.github.io/ml_website/about.html", "About"))
+           )
+  ),
   fluidRow(
     column(12, h1("MachOmics"))
   ),

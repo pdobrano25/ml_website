@@ -30,12 +30,15 @@ nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
 
 # Modify navbar to replace title with logo
 navbar_html <- html_content[nav_index]
-title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">MachOmics</a>", navbar_html)
-navbar_html[title_line] <- '<a class="navbar-brand" href="index.html"><img src="machomics_flat_white.png" alt="MachOmics" style="height:30px;"></a>'
-
+title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">", navbar_html)
+if (length(title_line) == 0) {
+  stop("Navbar title line not found. Expected '<a class=\"navbar-brand\" href=\"index.html\">'. Actual navbar HTML:\n",
+       paste(navbar_html, collapse = "\n"))
+}
+navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:30px;\"></a>'
 
 navbar_html <- c(
-  html_content[nav_index],
+  navbar_html,
   '<style>',
   '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',  # Keep fixed behavior
   '  body { padding-top: 70px; }',  # Offset content below navbar (adjust 70px as needed)
@@ -46,6 +49,13 @@ navbar_html <- c(
 dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
 navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
+
+cat("Navbar HTML written to:", navbar.path, "\n")
+# Verify written file
+navbar_written <- readLines(navbar.path, warn = FALSE)
+if (!any(grepl("<img src=\"machomics_flat_white.png\"", navbar_written))) {
+  warning("Logo replacement not found in _includes/navbar.html. Check written file.")
+}
 
 
 # :: render html ---------------------------------------------------------
