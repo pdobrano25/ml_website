@@ -97,7 +97,7 @@ for (f in files) {
   )
   
   # Conditionally add navbar (otherwise navbar gets doubled)
-  if (!(basename(f) %in% c("index.Rmd", "machomics.Rmd", "overfitcheck.Rmd", "about.Rmd"))) {
+  if (!(basename(f) %in% c("index.Rmd", "overfitcheck.Rmd", "about.Rmd"))) {
     output_options$includes <- list(before_body = navbar.path)
   }
   
