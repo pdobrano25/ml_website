@@ -35,14 +35,13 @@ if (length(title_line) == 0) {
   stop("Navbar title line not found. Expected '<a class=\"navbar-brand\" href=\"index.html\">'. Actual navbar HTML:\n",
        paste(navbar_html, collapse = "\n"))
 }
-navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:30px;\"></a>'
+navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:40px;\"></a>'
 
 navbar_html <- c(
   navbar_html,
   '<style>',
   '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',
   '  body { padding-top: 70px; }',
-  '  .navbar-default { display: none; }',  # Hide original navbar
   '</style>'
 )
 
@@ -66,14 +65,14 @@ if (!any(grepl("<img src=\"machomics_flat_white.png\"", navbar_written))) {
 files <- c("index.Rmd", 
            "MachOmics/machomics.Rmd",
            "about.Rmd", 
-           "mlp_validation/mlp_validation.Rmd",
-           "gevers_validation/gevers_validation.Rmd", 
-           "cmd_validation/cmd_validation.Rmd",
-           "sinai_validation/sinai_validation.Rmd",
-           "metaaml_validation/metaaml_validation.Rmd",   
-           "hmp_validation/hmp_validation.Rmd",
-           "muller_validation/muller_validation.Rmd",
-           "litichevskiy_validation/litichevskiy_validation.Rmd",
+           #"mlp_validation/mlp_validation.Rmd",
+           #"gevers_validation/gevers_validation.Rmd", 
+           #"cmd_validation/cmd_validation.Rmd",
+           #"sinai_validation/sinai_validation.Rmd",
+           #"metaaml_validation/metaaml_validation.Rmd",   
+           #"hmp_validation/hmp_validation.Rmd",
+           #"muller_validation/muller_validation.Rmd",
+           #"litichevskiy_validation/litichevskiy_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
@@ -106,7 +105,7 @@ for (f in files) {
     toc = TRUE,
     toc_float = TRUE,
     includes = list(before_body = navbar.path),  # Apply custom navbar to all files
-    self_contained = TRUE  # Ensure no external dependencies
+    self_contained = FALSE  # TRUE to ensure no external dependencies; breaks with figure loading
   )
   
   # Render the file

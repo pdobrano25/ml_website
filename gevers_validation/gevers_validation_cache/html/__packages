@@ -18,3 +18,12 @@ XVector
 Biostrings
 TreeSummarizedExperiment
 curatedMetagenomicData
+shiny
+rsconnect
+shinydashboard
+ggridges
+reshape2
+ranger
+pROC
+rstatix
+purrr
