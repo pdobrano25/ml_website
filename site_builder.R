@@ -27,7 +27,7 @@ if (length(title_line) == 0) {
   stop("Navbar title line not found. Expected '<a class=\"navbar-brand\" href=\"index.html\">'. Actual navbar HTML:\n",
        paste(navbar_html, collapse = "\n"))
 }
-navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:40px;\"></a>'
+navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:30px;\"></a>'
 
 navbar_html <- c(
   navbar_html,
