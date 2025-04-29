@@ -9,49 +9,37 @@
 # NOTE: Don't forget to update _site.yml with new pages in navbar
 
 t1 <- Sys.time()
-library(yaml)
-
-# Read the _site.yml file
-site_config <- yaml::read_yaml("_site.yml")
-
-# Extract navbar
-navbar <- site_config$navbar
-# Temporary render to get navbar HTML
-unlink("docs", recursive = TRUE)
-# use index to render navbar (saved to root, not)
+library(yaml)# Read the _site.yml file
+site_config <- yaml::read_yaml("_site.yml")# Extract navbar
+navbar <- site_config$navbar# Temporary render to get navbar HTML
+unlink("docs", recursive = TRUE)# use index to render navbar (saved to root, not)
 rmarkdown::render(input = "index.Rmd",
                   output_options = list(
-                         theme = "cosmo"))
+                    theme = "cosmo"))
 html_content <- readLines("index.html", warn = FALSE)
 nav_start <- grep("<div.*navbar", html_content, ignore.case = TRUE)[1]
 nav_end <- grep("<p>", html_content[nav_start:length(html_content)])[1] + nav_start -2
 nav_remove <- grep("<h1 class=\"title toc-ignore\">MachOmics</h1>", html_content)
-nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
-
-# Modify navbar to replace title with logo
+nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)# Modify navbar to replace title with logo
 navbar_html <- html_content[nav_index]
 title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">", navbar_html)
 if (length(title_line) == 0) {
   stop("Navbar title line not found. Expected '<a class=\"navbar-brand\" href=\"index.html\">'. Actual navbar HTML:\n",
        paste(navbar_html, collapse = "\n"))
 }
-navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:40px;\"></a>'
+navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:30px;\"></a>'
 
 navbar_html <- c(
   navbar_html,
   '<style>',
-  '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',
-  '  body { padding-top: 70px; }',
+  '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',  # Keep fixed behavior
+  '  body { padding-top: 70px; }',  # Offset content below navbar (adjust 70px as needed)
   '</style>'
 )
-
 # Write navbar.html
 dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
-navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
-
-cat("Navbar HTML written to:", navbar.path, "\n")
-# Verify written file
+navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)cat("Navbar HTML written to:", navbar.path, "\n")# Verify written file
 navbar_written <- readLines(navbar.path, warn = FALSE)
 if (!any(grepl("<img src=\"machomics_flat_white.png\"", navbar_written))) {
   warning("Logo replacement not found in _includes/navbar.html. Check written file.")
@@ -105,7 +93,7 @@ for (f in files) {
     toc = TRUE,
     toc_float = TRUE,
     includes = list(before_body = navbar.path),  # Apply custom navbar to all files
-    self_contained = FALSE  # TRUE to ensure no external dependencies; breaks with figure loading
+    self_contained = TRUE  # TRUE to ensure no external dependencies; breaks with figure loading
   )
   
   # Render the file
