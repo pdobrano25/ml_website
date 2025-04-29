@@ -3,7 +3,7 @@ title: "Predicting IBD using Metabolomes"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache=TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library("dplyr")
 library("ggplot2")
 

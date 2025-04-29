@@ -40,10 +40,12 @@ navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img s
 navbar_html <- c(
   navbar_html,
   '<style>',
-  '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',  # Keep fixed behavior
-  '  body { padding-top: 70px; }',  # Offset content below navbar (adjust 70px as needed)
+  '  .navbar-fixed-top { position: fixed; top: 0; width: 100%; z-index: 1000; }',
+  '  body { padding-top: 70px; }',
+  '  .navbar-default { display: none; }',  # Hide original navbar
   '</style>'
 )
+
 # Write navbar.html
 dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
@@ -102,13 +104,10 @@ for (f in files) {
   output_options <- list(
     theme = "cosmo",
     toc = TRUE,
-    toc_float = TRUE
+    toc_float = TRUE,
+    includes = list(before_body = navbar.path),  # Apply custom navbar to all files
+    self_contained = TRUE  # Ensure no external dependencies
   )
-  
-  # Conditionally add navbar (otherwise navbar gets doubled)
-  if (!(basename(f) %in% c("index.Rmd", "overfitcheck.Rmd", "about.Rmd"))) {
-    output_options$includes <- list(before_body = navbar.path)
-  }
   
   # Render the file
   rmarkdown::render(f, 

@@ -4,9 +4,10 @@ title: "Predicting Microbial Load using 16S data"
 ---
 
 ```{r setup_mlp, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache=TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library("dplyr")
 library("ggplot2")
+cached = T
 ```
 
 
@@ -305,7 +306,7 @@ We've rebuilt the training data, now we can re-train the predictor.
 
 ## Re-train model
 
-```{r, retrain_model_1, echo=FALSE, cache=TRUE, results=FALSE, warning=FALSE, message=FALSE}
+```{r, retrain_model_1, echo=FALSE, cache=F, results=FALSE, warning=FALSE, message=FALSE}
 
 # Use their training grid
 tune_grid = expand.grid(
@@ -322,7 +323,9 @@ tune_grid = expand.grid(
 set.seed(25)
 
 # train model with caret
-t1 = Sys.time()
+if(cached == F){
+  t1 = Sys.time()
+
 nishijima.model.rebuilt = caret::train(
   outcome ~ .,
   data = vandeputte.training.rebuilt,
@@ -334,8 +337,15 @@ nishijima.model.rebuilt = caret::train(
   method = "xgbTree",
   preProc = c("center", "scale")
 )
+
+saveRDS(nishijima.model.rebuilt, "../saved/nishijima.model.rebuilt.Rds")
+
 t2 = Sys.time()
 print(t2 - t1, digits=3)
+
+
+}
+nishijima.model.rebuilt = readRDS("../saved/nishijima.model.rebuilt.Rds")
 
 nishijima.model.rebuilt.predictions = nishijima.model.rebuilt$pred %>%
   subset(eta == nishijima.model.rebuilt$bestTune$eta &
@@ -434,8 +444,9 @@ We're also going to reduce the number of CV from 10 to 5, to save on time, but r
 Let's see how long these model took to build:
 
 
-```{r, loop_models, echo=F, results=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+```{r, loop_models, echo=F, results=FALSE, warning=FALSE, message=FALSE, cache=F}
 
+if(cached == F){
 t0 <- Sys.time()
 model.loop = do.call(rbind, lapply(1:15, function(iter) {
   do.call(rbind, lapply(ml.models, function(model){
@@ -481,8 +492,16 @@ vandeputte.testing.rebuilt.processed = log(vandeputte.testing.rebuilt.processed+
                time = as.numeric(t2 - t1),
                internal.rmse = min.rmse)
 }))}))
+
+saveRDS(model.loop, "../saved/mlp_model.loop.Rds")
 t3 <- Sys.time()
 t3 - t0
+
+}
+
+model.loop = readRDS("../saved/mlp_model.loop.Rds")
+
+
 ```
 
 
