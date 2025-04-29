@@ -35,7 +35,7 @@ if (length(title_line) == 0) {
   stop("Navbar title line not found. Expected '<a class=\"navbar-brand\" href=\"index.html\">'. Actual navbar HTML:\n",
        paste(navbar_html, collapse = "\n"))
 }
-navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:40px;\"></a>'
+navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\" style=\"display:flex; align-items:center;\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:40px;\"></a>'
 
 navbar_html <- c(
   navbar_html,
@@ -122,3 +122,4 @@ t2-t1
 # Apr 12 2025 = 20 min (added litichevskiy_validation)
 # Apr 27 2025 = 35 min (added shiny app and logo)
 
+# Stamp
