@@ -1,10 +1,6 @@
 name: "MachOmics"
 
 output_dir: "docs"
-
-output:
-  html_document:
-    cache: true
         
 include: _includes/navbar.html
   
