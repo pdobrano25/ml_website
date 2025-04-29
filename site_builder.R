@@ -92,7 +92,7 @@ for (f in files) {
     theme = "cosmo",
     toc = TRUE,
     toc_float = TRUE,
-    self_contained = FALSE,
+    self_contained = TRUE
   )  
   
   # Conditionally add navbar (otherwise navbar gets doubled)

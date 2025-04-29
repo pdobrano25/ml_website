@@ -4,7 +4,7 @@ title: "Predicting Metabolites using Metagenome Compositions"
 ---
 
 ```{r setup_mlp, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, cache=FALSE)
 library("dplyr")
 library("ggplot2")
 cache=T

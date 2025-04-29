@@ -5,7 +5,7 @@ title: "Machine Learning Models"
 
 
 ```{r setup_ml_figures, include=FALSE} 
-knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE) 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE, cache=FALSE) 
 # note: wd gets set during rendering
 
 ```

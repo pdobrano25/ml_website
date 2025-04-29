@@ -4,7 +4,7 @@ title: "Overfit Check"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache=FALSE)
 ```
 
 Overfitting is a common problem in published studies employing machine learning.

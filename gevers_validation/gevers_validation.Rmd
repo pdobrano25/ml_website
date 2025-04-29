@@ -3,7 +3,7 @@ title: "Predicting Crohn's Disease using 16S Data from Biopsies"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, cache=FALSE)
 library("dplyr")
 library("ggplot2")
 
