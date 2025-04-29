@@ -3,6 +3,10 @@ body {
   background-color: #f4f4f4;
   font-family: "Source Sans Pro", Calibri, Candara, Arial, sans-serif;
 }
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
 h1 {
   color: #2c3e50;
 }
