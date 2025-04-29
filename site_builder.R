@@ -8,7 +8,6 @@
 
 # NOTE: Don't forget to update _site.yml with new pages in navbar
 
-t1 <- Sys.time()
 library(yaml)
 
 # prevent caches from being created; if error, restart R
@@ -19,6 +18,8 @@ knitr::opts_chunk$set(
   cache.lazy=FALSE,     # Prevent lazy loading of cached objects
   cache.path=""         # Ensure no cache directory is set
 )
+
+t1 <- Sys.time()
 
 # Read the _site.yml file
 site_config <- yaml::read_yaml("_site.yml")# Extract navbar
@@ -123,5 +124,6 @@ t2-t1
 # Apr 10 2025 = 17 min (added muller_validation)
 # Apr 12 2025 = 20 min (added litichevskiy_validation)
 # Apr 27 2025 = 35 min (added shiny app and logo)
+# Apr 29 2025 = 20 min (somehow faster)
 
 # Stamp

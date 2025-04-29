@@ -12,22 +12,8 @@ library(purrr)
 library(rsconnect)
 library(patchwork)
 
-
-
-# deploy
-# setwd("~/Documents/PhD/ml_website")
-# rsconnect::setAccountInfo(name = "pdobrano", token = "DEDBB05D0EA0E7BC39EEB71CC0FAE1FB", secret = "/6KZAFGXuzLFXcRpAy/KcZ4b+MfMWgI1wec5OhCo")
-# rsconnect::deployApp('MachOmics')
-
-# setwd("MachOmics")
-# shiny::runApp("app.R")
-
+# Source utility functions
 source("utils.R")
-
-# Default data (loaded only if no upload)
-shiny_data <- readRDS("shiny_data.Rds")
-shiny_meta <- readRDS("shiny_meta.Rds")
-
 
 # Default data (loaded only if no upload)
 shiny_data <- readRDS("shiny_data.Rds")
@@ -51,10 +37,14 @@ ui <- fluidPage(
   ),
   # Data Upload Section
   fluidRow(
+    column(12, h4("Data Upload Section", style = "font-weight: bold; margin-bottom: 10px;"),
+           p("Upload your feature data and metadata in CSV, TSV, or RDS format, or use the default datasets. Configure the task type and labels, and apply transformations to prepare your data for analysis. You can also download the default data as CSV files below.")),
     box(
       title = "Data Upload", width = 6, status = "primary",
       fileInput("data_upload", "Upload Feature Data (CSV/TSV/RDS)", accept = c(".csv", ".tsv", ".rds", ".Rds", ".RDS"), placeholder = "Drag and drop or click to upload"),
       fileInput("meta_upload", "Upload Metadata (CSV/TSV/RDS)", accept = c(".csv", ".tsv", ".rds", ".Rds", ".RDS"), placeholder = "Drag and drop or click to upload"),
+      downloadButton("download_default_data", "Download Default Feature Data (CSV)"),
+      downloadButton("download_default_meta", "Download Default Metadata (CSV)"),
       verbatimTextOutput("upload_status")
     ),
     box(
@@ -70,6 +60,8 @@ ui <- fluidPage(
   ),
   # Data Exploration Section
   fluidRow(
+    column(12, h4("Data Exploration Section", style = "font-weight: bold; margin-bottom: 10px;"),
+           p("Visualize the distribution of your original and transformed feature data to understand its characteristics. Check the target variable distribution to assess class imbalances or regression ranges. Download the plots for further analysis.")),
     box(
       title = "Original Distribution", width = 6, status = "info",
       plotOutput("dist_plot_original"),
@@ -90,6 +82,8 @@ ui <- fluidPage(
   ),
   # Model Building Section
   fluidRow(
+    column(12, h4("Model Building Section", style = "font-weight: bold; margin-bottom: 10px;"),
+           p("Configure and train a machine learning model for classification or regression using your processed data. Monitor the training progress and status to ensure successful model building.")),
     box(
       title = "Model Configuration", width = 6, status = "warning",
       selectInput("model_task", "Task Type", choices = c("classification", "regression")),
@@ -102,16 +96,18 @@ ui <- fluidPage(
   ),
   # Results Section
   fluidRow(
+    column(12, h4("Results Section", style = "font-weight: bold; margin-bottom: 10px;"),
+           p("Review the model’s performance metrics and feature importances through interactive plots. Download these visualizations to share or include in reports.")),
     box(
       title = "Performance Metrics", width = 12, status = "success",
-      plotOutput("perf_plot"),
+      plotOutput("perf_plot", width = "1200px", height = "400px"),
       downloadButton("download_perf", "Download Plot")
     )
   ),
   fluidRow(
     box(
       title = "Feature Importances", width = 12, status = "success",
-      plotOutput("feat_plot"),
+      plotOutput("feat_plot", width = "1200px", height = "400px"),
       downloadButton("download_feat", "Download Plot")
     )
   )
@@ -183,6 +179,22 @@ server <- function(input, output, session) {
     })
   })
   
+  # Download Default Feature Data as CSV
+  output$download_default_data <- downloadHandler(
+    filename = function() { "default_feature_data.csv" },
+    content = function(file) {
+      write.csv(shiny_data, file, row.names = TRUE)
+    }
+  )
+  
+  # Download Default Metadata as CSV
+  output$download_default_meta <- downloadHandler(
+    filename = function() { "default_metadata.csv" },
+    content = function(file) {
+      write.csv(shiny_meta, file, row.names = FALSE)
+    }
+  )
+  
   # Display Upload Status
   output$upload_status <- renderText({
     rv$upload_status
@@ -218,7 +230,7 @@ server <- function(input, output, session) {
     })
   })
   
-  # Original Distribution Plot (always shown after upload)
+  # Original Distribution Plot
   output$dist_plot_original <- renderPlot({
     req(rv$data_original)
     distribution_check(data = rv$data_original, transform = FALSE)
@@ -232,7 +244,7 @@ server <- function(input, output, session) {
     }
   )
   
-  # Transformed Distribution Plot (shown only after transformation)
+  # Transformed Distribution Plot
   output$dist_plot_transformed <- renderPlot({
     req(rv$transformed)
     distribution_check(data = rv$data_original, transform = input$apply_transform)
@@ -289,11 +301,13 @@ server <- function(input, output, session) {
   output$download_perf <- downloadHandler(
     filename = function() { "performance_plot.png" },
     content = function(file) {
-      ggsave(file, plot = visualize_performance(build_output = rv$model_output, task = input$model_task), device = "png")
+      req(rv$model_output)
+      ggsave(file, plot = visualize_performance(build_output = rv$model_output, task = input$model_task), 
+             device = "png", width = 1200/96, height = 400/96, units = "in")
     }
   )
   
-  # Feature Importance Plot with Progress Bar
+  # Feature Importance Plot
   output$feat_plot <- renderPlot({
     req(rv$model_output)
     withProgress(message = "Generating feature importances...", value = 0, {
@@ -305,15 +319,18 @@ server <- function(input, output, session) {
       incProgress(1)
       plot
     })
-  })
+  )
+  
   # Download Feature Importance Plot
   output$download_feat <- downloadHandler(
     filename = function() { "feature_importance_plot.png" },
     content = function(file) {
-      ggsave(file, plot = feature_importances(build_output = rv$model_output, data = rv$data, meta = rv$meta), device = "png")
+      req(rv$model_output)
+      ggsave(file, plot = feature_importances(build_output = rv$model_output, data = rv$data, meta = rv$meta), 
+             device = "png", width = 1200/96, height = 400/96, units = "in")
     }
   )
-}
-
-# Run App
-shinyApp(ui, server)
+  }
+  
+  # Run App
+  shinyApp(ui, server)
