@@ -11,7 +11,7 @@
 t1 <- Sys.time()
 library(yaml)
 
-# prevent caches from being created
+# prevent caches from being created; if error, restart R
 rm(list=ls())
 knitr::opts_chunk$restore() # Clear any existing knitr settings
 knitr::opts_chunk$set(
@@ -63,14 +63,14 @@ navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
 files <- c("index.Rmd", 
            "MachOmics/machomics.Rmd",
            "about.Rmd", 
-           #"mlp_validation/mlp_validation.Rmd",
-           #"gevers_validation/gevers_validation.Rmd", 
-           #"cmd_validation/cmd_validation.Rmd",
-           #"sinai_validation/sinai_validation.Rmd",
-           #"metaaml_validation/metaaml_validation.Rmd",   
-           #"hmp_validation/hmp_validation.Rmd",
-           #"muller_validation/muller_validation.Rmd",
-           #"litichevskiy_validation/litichevskiy_validation.Rmd",
+           "mlp_validation/mlp_validation.Rmd",
+           "gevers_validation/gevers_validation.Rmd", 
+           "cmd_validation/cmd_validation.Rmd",
+           "sinai_validation/sinai_validation.Rmd",
+           "metaaml_validation/metaaml_validation.Rmd",   
+           "hmp_validation/hmp_validation.Rmd",
+           "muller_validation/muller_validation.Rmd",
+           "litichevskiy_validation/litichevskiy_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
