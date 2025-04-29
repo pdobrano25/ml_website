@@ -9,10 +9,24 @@
 # NOTE: Don't forget to update _site.yml with new pages in navbar
 
 t1 <- Sys.time()
-library(yaml)# Read the _site.yml file
+library(yaml)
+
+# prevent caches from being created
+rm(list=ls())
+knitr::opts_chunk$restore() # Clear any existing knitr settings
+knitr::opts_chunk$set(
+  cache=FALSE,          # Disable caching globally
+  cache.lazy=FALSE,     # Prevent lazy loading of cached objects
+  cache.path=""         # Ensure no cache directory is set
+)
+
+# Read the _site.yml file
 site_config <- yaml::read_yaml("_site.yml")# Extract navbar
-navbar <- site_config$navbar# Temporary render to get navbar HTML
-unlink("docs", recursive = TRUE)# use index to render navbar (saved to root, not)
+navbar <- site_config$navbar
+
+# Temporary render to get navbar HTML
+unlink("docs", recursive = TRUE)
+# use index to render navbar (saved to root, not)
 rmarkdown::render(input = "index.Rmd",
                   output_options = list(
                     theme = "cosmo"))
@@ -20,7 +34,8 @@ html_content <- readLines("index.html", warn = FALSE)
 nav_start <- grep("<div.*navbar", html_content, ignore.case = TRUE)[1]
 nav_end <- grep("<p>", html_content[nav_start:length(html_content)])[1] + nav_start -2
 nav_remove <- grep("<h1 class=\"title toc-ignore\">MachOmics</h1>", html_content)
-nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)# Modify navbar to replace title with logo
+nav_index <- c(nav_start:(nav_remove-1), (nav_remove+1):nav_end)
+# Modify navbar to replace title with logo
 navbar_html <- html_content[nav_index]
 title_line <- grep("<a class=\"navbar-brand\" href=\"index.html\">", navbar_html)
 if (length(title_line) == 0) {
@@ -40,12 +55,6 @@ navbar_html <- c(
 dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
 navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
-cat("Navbar HTML written to:", navbar.path, "\n")# Verify written file
-navbar_written <- readLines(navbar.path, warn = FALSE)
-if (!any(grepl("<img src=\"machomics_flat_white.png\"", navbar_written))) {
-  warning("Logo replacement not found in _includes/navbar.html. Check written file.")
-}
-
 
 # :: render html ---------------------------------------------------------
 
@@ -54,14 +63,14 @@ if (!any(grepl("<img src=\"machomics_flat_white.png\"", navbar_written))) {
 files <- c("index.Rmd", 
            "MachOmics/machomics.Rmd",
            "about.Rmd", 
-           "mlp_validation/mlp_validation.Rmd",
-           "gevers_validation/gevers_validation.Rmd", 
-           "cmd_validation/cmd_validation.Rmd",
-           "sinai_validation/sinai_validation.Rmd",
-           "metaaml_validation/metaaml_validation.Rmd",   
-           "hmp_validation/hmp_validation.Rmd",
-           "muller_validation/muller_validation.Rmd",
-           "litichevskiy_validation/litichevskiy_validation.Rmd",
+           #"mlp_validation/mlp_validation.Rmd",
+           #"gevers_validation/gevers_validation.Rmd", 
+           #"cmd_validation/cmd_validation.Rmd",
+           #"sinai_validation/sinai_validation.Rmd",
+           #"metaaml_validation/metaaml_validation.Rmd",   
+           #"hmp_validation/hmp_validation.Rmd",
+           #"muller_validation/muller_validation.Rmd",
+           #"litichevskiy_validation/litichevskiy_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
@@ -87,13 +96,14 @@ for (f in files) {
   dir.create("MachOmics", recursive = TRUE, showWarnings = FALSE)
   if (file.exists("machomics_flat_white.png")) {
     file.copy("machomics_flat_white.png", "MachOmics/machomics_flat_white.png", overwrite = TRUE)
-  }  # Define output options
+  }  
+  
+  # Define output options
   output_options <- list(
     theme = "cosmo",
     toc = TRUE,
-    toc_float = TRUE,
-    self_contained = TRUE
-  )  
+    toc_float = TRUE
+    )  
   
   # Conditionally add navbar (otherwise navbar gets doubled)
   if (!(basename(f) %in% c("index.Rmd", "overfitcheck.Rmd", "about.Rmd"))) {
