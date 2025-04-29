@@ -27,7 +27,7 @@ if (length(title_line) == 0) {
   stop("Navbar title line not found. Expected '<a class=\"navbar-brand\" href=\"index.html\">'. Actual navbar HTML:\n",
        paste(navbar_html, collapse = "\n"))
 }
-navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:30px;\"></a>'
+navbar_html[title_line] <- '<a class=\"navbar-brand\" href=\"index.html\"><img src=\"machomics_flat_white.png\" alt=\"MachOmics\" style=\"height:40px;\"></a>'
 
 navbar_html <- c(
   navbar_html,
@@ -39,7 +39,8 @@ navbar_html <- c(
 # Write navbar.html
 dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
-navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)cat("Navbar HTML written to:", navbar.path, "\n")# Verify written file
+navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
+cat("Navbar HTML written to:", navbar.path, "\n")# Verify written file
 navbar_written <- readLines(navbar.path, warn = FALSE)
 if (!any(grepl("<img src=\"machomics_flat_white.png\"", navbar_written))) {
   warning("Logo replacement not found in _includes/navbar.html. Check written file.")
@@ -70,7 +71,7 @@ unlink("docs", recursive = TRUE)
 # Render each file
 for (f in files) {
   output_dir <- file.path("docs", dirname(f))
-  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)  
   
   # Copy images to docs/
   dir.create("docs", recursive = TRUE, showWarnings = FALSE)
@@ -80,31 +81,33 @@ for (f in files) {
     if (file.exists(img_source)) {
       file.copy(img_source, img_dest, overwrite = TRUE)
     }
-  }
+  }  
+  
   # Copy logo to MachOmics/ for Shiny app
   dir.create("MachOmics", recursive = TRUE, showWarnings = FALSE)
   if (file.exists("machomics_flat_white.png")) {
     file.copy("machomics_flat_white.png", "MachOmics/machomics_flat_white.png", overwrite = TRUE)
-  }
-  
-  # Define output options
+  }  # Define output options
   output_options <- list(
     theme = "cosmo",
     toc = TRUE,
-    toc_float = TRUE,
-    includes = list(before_body = navbar.path),  # Apply custom navbar to all files
-    self_contained = TRUE  # TRUE to ensure no external dependencies; breaks with figure loading
-  )
+    toc_float = TRUE
+  )  
   
-  # Render the file
+  # Conditionally add navbar (otherwise navbar gets doubled)
+  if (!(basename(f) %in% c("index.Rmd", "overfitcheck.Rmd", "about.Rmd"))) {
+    output_options$includes <- list(before_body = navbar.path)
+    
+  }  # Render the file
   rmarkdown::render(f, 
                     output_dir = "docs",
                     output_format = "html_document", 
                     output_options = output_options)
 }
-
 t2 <- Sys.time()
 t2-t1 
+
+
 # Apr 4 2025 = 12 min (added hmp_validation)
 # Apr 10 2025 = 17 min (added muller_validation)
 # Apr 12 2025 = 20 min (added litichevskiy_validation)
