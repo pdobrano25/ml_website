@@ -55,13 +55,13 @@ files <- c("index.Rmd",
            "MachOmics/machomics.Rmd",
            "about.Rmd", 
            "mlp_validation/mlp_validation.Rmd",
-           "gevers_validation/gevers_validation.Rmd", 
-           "cmd_validation/cmd_validation.Rmd",
-           "sinai_validation/sinai_validation.Rmd",
-           "metaaml_validation/metaaml_validation.Rmd",   
-           "hmp_validation/hmp_validation.Rmd",
-           "muller_validation/muller_validation.Rmd",
-           "litichevskiy_validation/litichevskiy_validation.Rmd",
+           #"gevers_validation/gevers_validation.Rmd", 
+           #"cmd_validation/cmd_validation.Rmd",
+           #"sinai_validation/sinai_validation.Rmd",
+           #"metaaml_validation/metaaml_validation.Rmd",   
+           #"hmp_validation/hmp_validation.Rmd",
+           #"muller_validation/muller_validation.Rmd",
+           #"litichevskiy_validation/litichevskiy_validation.Rmd",
            "overfitcheck.Rmd",
            "ml_models/ml_figures.Rmd")
 
@@ -92,7 +92,7 @@ for (f in files) {
     theme = "cosmo",
     toc = TRUE,
     toc_float = TRUE,
-    self_contained = FALSE,
+    self_contained = FALSE
   )  
   
   # Conditionally add navbar (otherwise navbar gets doubled)
