@@ -57,6 +57,10 @@ dir.create("_includes")
 writeLines(navbar_html, "_includes/navbar.html")
 navbar.path = normalizePath("_includes/navbar.html", mustWork = TRUE)
 
+# make an extra copy for shiny app
+writeLines(navbar_html, "MachOmics/_includes/navbar.html")
+
+
 # :: render html ---------------------------------------------------------
 
 

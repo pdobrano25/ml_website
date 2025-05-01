@@ -58,6 +58,22 @@ distribution_check = function(data = data,
   }
 }
 
+
+# :: Filter Data ----------------------------------------------------------
+
+filter_data = function(data = data,
+                       prev = 10){
+  # count # samples
+  n_samples = nrow(data)
+  # replace na with 0
+  data[is.na(data)] = 0
+  # count prev
+  data_prev = data
+  data_prev[data_prev != 0] <- 1
+  data_prev = data[,colSums(data_prev) > n_samples*prev/100]
+  return(data_prev)
+}
+  
 # :: Log Transform --------------------------------------------------------
 
 log_transform = function(data = data,

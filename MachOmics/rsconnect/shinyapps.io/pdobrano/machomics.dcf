@@ -1,10 +1,10 @@
 name: machomics
 title:
-username: rs-ibd
-account: rs-ibd
+username: pdobrano
+account: pdobrano
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14623386
-bundleId: 10187630
+bundleId: 10210488
 url: https://pdobrano.shinyapps.io/machomics/
 version: 1
