@@ -197,13 +197,13 @@ ui <- fluidPage(
   # Data Upload Section
   fluidRow(
     column(12, h4("Data Upload Section", style = "font-weight: bold; margin-bottom: 10px;", id = "data-upload-section"),
-           p("Upload your feature data and metadata in CSV, TSV, or RDS format, or use the default datasets. Configure the task type and labels, and apply transformations to prepare your data for analysis. You can also download the default data as CSV files below.")),
+           p("Upload your feature data and metadata in CSV, TSV, or RDS format, or use the default datasets. Configure the task type and labels, and apply transformations to prepare your data for analysis. You can also download the default data as CSV files below to ensure proper formatting with your own data.")),
     box(
       title = "Data Upload", width = 6, status = "primary",
       fileInput("data_upload", "Upload Feature Data (CSV/TSV/RDS)", accept = c(".csv", ".tsv", ".rds", ".Rds", ".RDS"), placeholder = "...or drag and drop"),
       fileInput("meta_upload", "Upload Metadata (CSV/TSV/RDS)", accept = c(".csv", ".tsv", ".rds", ".Rds", ".RDS"), placeholder = "...or drag and drop"),
-      downloadButton("download_default_data", "Download Default Feature Data (CSV)", style = "margin-top: 10px;", class = "download-button"),
-      downloadButton("download_default_meta", "Download Default Metadata (CSV)", style = "margin-top: 10px;", class = "download-button"),
+      downloadButton("download_default_data", "Download Sample Feature Data (CSV)", style = "margin-top: 10px;", class = "download-button"),
+      downloadButton("download_default_meta", "Download Sample Metadata (CSV)", style = "margin-top: 10px;", class = "download-button"),
       verbatimTextOutput("upload_status")
     ),
     box(

@@ -374,7 +374,7 @@ visualize_performance = function(build_output = build_output,
       labs(x = "1 - Specificity", y = "Sensitivity", fill="", color="") +
       theme_minimal()+theme(legend.position = c(0.75,0.25),
                             legend.text=element_text(size=11))
-    return(plot_confusion_matrix | plot_auc | plot_roc)
+    return(plot_confusion_matrix + plot_auc + plot_roc + patchwork::plot_layout(widths=c(2,1,2), nrow=1))
     
     
   }
@@ -529,8 +529,8 @@ feature_importances = function(build_output = build_output,
     geom_point(shape=21, alpha=1)+
     ggrepel::geom_text_repel(aes(label=feature.label), size=3)+
     theme_minimal()+theme(legend.position="none")+
-    scale_fill_gradient2(low = scales::muted("red"),
-                         high = scales::muted("blue"))+
+    scale_fill_gradient2(high = scales::muted("red"),
+                         low = scales::muted("blue"))+
     labs(x="Coefficient", y="Median Feature Importance")
   
   if(sum(feature_importance_data$sig=="*")>0){
