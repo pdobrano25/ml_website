@@ -417,7 +417,7 @@ ggpubr::ggscatter(testing.predictions.rebuilt,
 
 ```
 
-This correlation (R = 0.64) is now comparable to the original correlation (R = 0.60).
+This correlation is now comparable to the original correlation (R = 0.60).
 
 Therefore, using non-standard pre-processing had a significant impact on the external validation performance.
 
