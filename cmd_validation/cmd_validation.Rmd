@@ -7,6 +7,9 @@ knitr::opts_chunk$set(echo = FALSE, cache=FALSE)
 library("dplyr")
 library("ggplot2")
 
+cached = T
+
+
 ```
 
 
@@ -223,7 +226,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste(heldout, "\nROC Curve with 95% CI", " (AUC: ", round(auc_test$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 }
 }
 
@@ -239,7 +242,6 @@ Here is the ROC when using *unbalanced* data:
 
 ```{r, lld_hmp_unbalanced, results=F, plot=T, echo=FALSE, warning=FALSE, message=FALSE}
 
-cached = T
 
 if(cached == F){
 
@@ -262,7 +264,6 @@ Here is the ROC when using *balanced* data:
 
 ```{r, lld_hmp_balanced, results=F, plot=T, echo=FALSE, warning=FALSE, message=FALSE}
 
-cached = T
 
 if(cached == F){
 
@@ -289,8 +290,6 @@ Here is the ROC curve when using the Lifelines + Nielsen data sets to build a mo
 
 ```{r, nie_lld, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
-cached = T
-
 if(cached == F){
 
 nie_lld = cmd_ml_pipeline(cmd_data_merge, 
@@ -311,8 +310,6 @@ nie_lld
 Here is the ROC curve when using the Nielson + HMP data sets to build a model, and the Lifelines data set to evaluate:
 
 ```{r, nie_hmp, results=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
-
-cached = T
 
 if(cached == F){
   

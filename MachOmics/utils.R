@@ -46,14 +46,14 @@ distribution_check = function(data = data,
     reshape2::melt() %>%
     ggplot(aes(x=value, y = 1))+
     ggridges::geom_density_ridges(aes(group = Var2), color="black", fill="white", alpha=0.2)+
-    theme_minimal()+theme(legend.position="none")+
+    theme_classic()+theme(legend.position="none")+
     labs(x="Value", y="Frequency", title="Sampled Features")
   }else{
     data %>% as.matrix() %>%
       reshape2::melt() %>%
       ggplot(aes(x=value, y = 1))+
       ggridges::geom_density_ridges(aes(group = Var2), color="black", fill="white", alpha=0.2)+
-      theme_minimal()+theme(legend.position="none")+
+      theme_classic()+theme(legend.position="none")+
       labs(x="Value", y="Frequency", title="All Features")
   }
 }
@@ -289,7 +289,7 @@ visualize_performance = function(build_output = build_output,
       scale_fill_manual(values=c(1, "grey"))+
       geom_text(aes(label=paste0(med.freq,"\n", "(", sd.freq, ")", sep="")), color="white")+
       guides(fill="none", color="none")+
-      theme_minimal()+
+      theme_classic()+
       labs(x="True", y="Prediction")
     
     # plot AUC
@@ -318,7 +318,7 @@ visualize_performance = function(build_output = build_output,
                 label = stat.test.auc$label,
                 size=ifelse(stat.test.auc$label == "*", 5, 3))+
       expand_limits(y = max(performance_data_auc$auc) + 0.05)+
-      theme_minimal()+
+      theme_classic()+
       labs(x="", y="AUC")
     plot_auc
     
@@ -372,7 +372,7 @@ visualize_performance = function(build_output = build_output,
       scale_fill_manual(values = c("red", "grey"))+
       # Labels and theme
       labs(x = "1 - Specificity", y = "Sensitivity", fill="", color="") +
-      theme_minimal()+theme(legend.position = c(0.75,0.25),
+      theme_classic()+theme(legend.position = c(0.75,0.25),
                             legend.text=element_text(size=11))
     return(plot_confusion_matrix + plot_auc + plot_roc + patchwork::plot_layout(widths=c(2,1,2), nrow=1))
     
@@ -415,7 +415,7 @@ visualize_performance = function(build_output = build_output,
                 label = stat.test.cor$label,
                 size=ifelse(stat.test.cor$label == "*", 5, 3))+
       expand_limits(y = max(performance_data_cor$coef) + 0.05)+
-      theme_minimal()+
+      theme_classic()+
       labs(x="", y="Spearman ρ")
     plot_spear
     
@@ -441,7 +441,7 @@ visualize_performance = function(build_output = build_output,
       geom_point(data=subset(correlation_data_median, type == "real"), aes(fill=type.cor), shape=21, color="black")+
       scale_fill_manual(values=c("grey", "red"))+
       scale_color_manual(values=c("grey", "red"))+
-      theme_minimal()+theme(legend.position = c(0.75,0.15),
+      theme_classic()+theme(legend.position = c(0.75,0.15),
                             legend.text=element_text(size=11))+
       labs(x="True", y="Prediction", color="", fill="")
     
@@ -528,7 +528,7 @@ feature_importances = function(build_output = build_output,
     # 
     geom_point(shape=21, alpha=1)+
     ggrepel::geom_text_repel(aes(label=feature.label), size=3)+
-    theme_minimal()+theme(legend.position="none")+
+    theme_classic()+theme(legend.position="none")+
     scale_fill_gradient2(high = scales::muted("red"),
                          low = scales::muted("blue"))+
     labs(x="Coefficient", y="Median Feature Importance")
@@ -556,7 +556,7 @@ feature_importances = function(build_output = build_output,
                   aes(x=importance, y=feature), fill="red", alpha=0.4)+
       geom_point(data=subset(feature_median, type =="real" & !is.na(feature)& feature %in% unique(arrange(feature_importance_data,med.imp)$feature)), 
                  aes(x=med.imp, y=feature), shape=21, fill="red", alpha=1)+
-      theme_minimal()+
+      theme_classic()+
       labs(x="Feature Importance", y="")
     
     # plot both
