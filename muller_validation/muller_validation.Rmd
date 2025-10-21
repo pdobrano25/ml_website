@@ -136,14 +136,14 @@ We'll check the distributions of the datasets.
 franzosa_raw_metabolite_hist = ggplot(reshape2::melt(as.matrix(franzosa_mbx)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Abundance", y="Frequency", title="Metabolomics\nFranzosa (Untransformed)")
 
 
 ihmp_raw_metabolite_hist = ggplot(reshape2::melt(as.matrix(ihmp_mbx)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Abundance", y="Frequency", title="Metabolomics\nIHMP (Untransformed)")
 
 
@@ -164,13 +164,13 @@ ihmp_mbx_log = log(ihmp_mbx+muller_mbx_pseudo, base=2)
 franzosa_log_metabolite_hist = ggplot(reshape2::melt(as.matrix(franzosa_mbx_log)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Log Abundance", y="Frequency", title="Metabolomics\nFranzosa (Log-transformed)")
 
 ihmp_log_metabolite_hist = ggplot(reshape2::melt(as.matrix(ihmp_mbx_log)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Log Abundance", y="Frequency", title="Metabolomics\nIHMP (Log-transformed)")
 
 
@@ -257,12 +257,12 @@ franzosa_mgx_prev = readRDS( "../saved/franzosa_mgx_prev.Rds")
 ggplot(franzosa_mgx_prev,
        aes(x=(abun_filt*100), y=(prev)))+
   geom_point(aes(fill=prev_filt), shape=21, size=3)+
-  scale_fill_gradient2(low=scales::muted("blue"),
+  scale_fill_gradient2(low=("blue"),
                        mid="white",midpoint=6,
-                       high=scales::muted("red"))+
+                       high=("red"))+
   scale_x_log10()+
   scale_y_log10()+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Abundance % Threshold",
        y="Taxa Remaining",
        fill="Prevalence\nThreshold\n(% samples)")
@@ -301,13 +301,13 @@ Now let's assess the distributions of taxa and log-transform if necessary, apply
 franzosa_raw_mgx_hist = ggplot(reshape2::melt(as.matrix(franzosa_mgx_filt)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Abundance", y="Frequency", title="Metagenomics\nFranzosa (Untransformed)")
 
 ihmp_raw_mgx_hist = ggplot(reshape2::melt(as.matrix(ihmp_mgx)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Abundance", y="Frequency", title="Metagenomics\nIHMP (Untransformed)")
 
 # next, log-transform, but select a pseudocount that can be applied to both datasets
@@ -323,13 +323,13 @@ ihmp_mgx_log = log(ihmp_mgx+muller_mgx_pseudo, base=2)
 franzosa_log_mgx_hist = ggplot(reshape2::melt(as.matrix(franzosa_mgx_log)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Log Abundance", y="Frequency", title="Metagenomics\nFranzosa (Log-transformed)")
 
 ihmp_log_mgx_hist = ggplot(reshape2::melt(as.matrix(ihmp_mgx_log)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Log Abundance", y="Frequency", title="Metagenomics\nIHMP (Log-transformed)")
 
 # plot all
@@ -561,8 +561,8 @@ print(paste0(subset(muller_ranger_output_mean, mean_external_real > 0.3) %>% nro
 ggplot(subset(muller_ranger_output_mean, mean_external_real > 0.3),
        aes(x=reorder(gsub("X__", "", metabolite), mean_external_real)))+
   # plot violins
-  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=internal_null_spearman), fill="grey", alpha=0.2)+
-  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=external_null_spearman), fill="grey", alpha=0.2)+
+  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=internal_null_spearman), fill="grey", color="grey", alpha=0.2)+
+  geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=external_null_spearman), fill="grey", color="grey", alpha=0.2)+
   geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=internal_real_spearman, fill="1"), color="black", alpha=0.2)+
   geom_violin(data = subset(muller_ranger_output, mean_external_real > 0.3), aes(y=external_real_spearman, fill="2"), fill=2, color="black", alpha=0.2)+
   # plot mean values
@@ -570,7 +570,8 @@ ggplot(subset(muller_ranger_output_mean, mean_external_real > 0.3),
   geom_point(aes(y=mean_external_null), shape=21, size=2, fill="grey")+
   geom_point(aes(y=mean_internal_real, fill="1"), shape=21, size=2)+
   geom_point(aes(y=mean_external_real, fill="2"), shape=21, size=2)+ 
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none",
+                        panel.grid.major.y = element_line(linewidth=0.2, color="grey"))+
   scale_y_continuous(breaks=seq(-6,7, by=1)/10)+
   coord_flip()+
   labs(y="Spearman ρ", x="")
@@ -630,15 +631,19 @@ muller_loop_output_mean = muller_loop_output %>%
 ggplot(muller_loop_output_mean[,c("model", "metabolite", "mean_internal_real")] %>% distinct(),
        aes(x=model, y=mean_internal_real))+
   geom_violin(draw_quantiles = 0.5)+
+  scale_y_continuous(limits=c(0,1))+
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill=model))+
-  theme_minimal()+theme(legend.position="none",
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none",
                         axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="", y="Mean Spearman ρ", title="Internal Validation")|
 ggplot(muller_loop_output_mean[,c("model", "metabolite", "mean_external_real")] %>% distinct(),
        aes(x=model, y=mean_external_real))+
   geom_violin(draw_quantiles = 0.5)+
+    scale_y_continuous(limits=c(0,1))+
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill=model))+
-  theme_minimal()+theme(legend.position="none",
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none",
                         axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="", y="Mean Spearman ρ", title="External Validation")
 ```
@@ -727,19 +732,24 @@ ranger.features =  readRDS("../saved/ranger.features.Rds")
 ranger.features.top.taxa = ranger.features %>%
   group_by(taxa) %>%
   mutate(mean.imp = mean(importance)) %>%
-  dplyr::select(taxa, mean.imp) %>% distinct() %>%
+  mutate(mean.cor = mean(cor)) %>%
+  dplyr::select(taxa, mean.imp, mean.cor) %>% distinct() %>%
   arrange(-mean.imp) %>%
   head(n=20)
 
 reshape2::acast(subset(ranger.features, taxa %in% ranger.features.top.taxa$taxa),
                 taxa ~ gsub("X__", "", metabolite), value.var="importance") %>%
-  pheatmap::pheatmap()
+  pheatmap::pheatmap(scale="row",
+                     clustering_distance_cols = "correlation",
+                     clustering_distance_rows = "correlation",
+                     color = colorRampPalette(c("blue", "white", "red"))(100),
+                     border_color="white")
 
 ```
 
 There are a few metabolites with an feature importances worth noting.
 
-First, **urobilin**, which I previously found to be associated with IBD microbiomes [here](https://pdobrano25.github.io/ml_website/hmp_validation.html#Feature_importances). Urobilin has a few features with outsized importance values towards the top right of the heatmap.
+First, **urobilin**, which I previously found to be associated with IBD microbiomes [here](https://pdobrano25.github.io/ml_website/hmp_validation.html#Feature_importances). Urobilin has a few features with outsized importance.
 
 Second, **chenodeoxycholate** (CDCA), a primary bile acid, has a band of importance features. Primary bile acids, including CDCA, have been consistently found to be enriched in IBD, including in Franzosa's original [study](https://www.nature.com/articles/s41564-018-0306-4). 
 
@@ -758,11 +768,11 @@ ggplot(ranger.features.top %>% arrange(-importance),
   geom_point(shape=21, aes(fill=cor, size=importance))+
   ggrepel::geom_label_repel(data = subset(ranger.features.top, importance > 200),
                            aes(x=cor, y=importance, label=taxa), size=3)+
-  scale_fill_gradient2(high=scales::muted("red"),
+  scale_fill_gradient2(high=("red"),
                        mid="white",
-                       low=scales::muted("blue"))+
+                       low=("blue"))+
   labs(x="Spearman ρ", y="Feature Importance")+
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none")+
   facet_wrap(~gsub("X__", "", metabolite), ncol=2) %>% suppressWarnings()
 
 ```

@@ -90,7 +90,7 @@ hmp_metadata[,c("Subject")] %>% table() %>% data.frame() %>%
   ggplot()+
   ggridges::geom_density_ridges(aes(x=Freq, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(title = "Sample Replicates",
        x = "Number of Samples per Subject",
        y="Frequency")
@@ -111,7 +111,7 @@ hmp_data_an = hmp_data[,!grepl("\\: NA", colnames(hmp_data))]
 hmp_met_dist_plot = ggplot(reshape2::melt(as.matrix(hmp_data_an)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Abundance", y="Frequency")
 hmp_met_dist_plot
 
@@ -129,7 +129,7 @@ hmp_data_an = log(hmp_data_an+hmp_pseudo, base=2)
 hmp_met_dist_plot_log = ggplot(reshape2::melt(as.matrix(hmp_data_an)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Log Abundance", y="Frequency")
 hmp_met_dist_plot_log
 
@@ -222,7 +222,7 @@ hmp_train_auc_plot = ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("ROC Curve with 95% CI\nTraining (AUC: ", round(hmp_train_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 
 ```
 
@@ -263,7 +263,7 @@ hmp_test_auc_plot = ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("ROC Curve with 95% CI\nTesting (AUC: ", round(hmp_test_roc$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 
 # plot both
 hmp_train_auc_plot | hmp_test_auc_plot
@@ -327,7 +327,7 @@ hmp_auc_loop = do.call(rbind, lapply(1:15, function(seed){
   hmp_model_test = predict(hmp_model, hmp_external_data, type="prob")
 
   # build ROC curve
-  hmp_external_roc <- pROC::roc(hmp_external_data$disease, hmp_model_test$IBD, levels = levels(hmp_external_data$disease))
+  hmp_external_roc <- pROC::roc(hmp_external_data$disease, hmp_model_test$IBD, levels = levels(hmp_external_data$disease), direction = "<")
   
   # collate into data.frame
   data.frame(model = algo,
@@ -386,8 +386,9 @@ ggplot()+
   geom_point(data=subset(hmp_auc_loop_median, datatype=="real"), 
              aes(x =  model, y=med.val, fill= model), shape=21, size=1.5)+
   geom_text(data=hmp_auc_ttest_df, aes(x=model, Inf, label=sig), vjust=1.2)+
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
   scale_y_continuous(breaks=seq(0.3,1, by=0.1))+
-  theme_bw()+theme(legend.position="none",
+  theme_classic()+theme(legend.position="none",
                            axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   facet_wrap(~variable)+
   labs(x="Model", y="AUC")
@@ -438,11 +439,11 @@ ggplot(hmp_feature_imp %>% arrange(-Overall),
   geom_point(shape=21, aes(fill=lfc, size=Overall))+
   ggrepel::geom_label_repel(data = subset(hmp_feature_imp, Overall > 50),
                            aes(x=lfc, y=Overall, label=clean_feature), size=3)+
-  scale_fill_gradient2(high=scales::muted("red"),
+  scale_fill_gradient2(high=("red"),
                        mid="white",
-                       low=scales::muted("blue"))+
-  labs(x="Log Fold Change", y="Feature Importance")+
-  theme_minimal()+theme(legend.position="none")
+                       low=("blue"))+
+  labs(x="Log2 Fold Change", y="Feature Importance")+
+  theme_classic()+theme(legend.position="none")
 
 ```
 

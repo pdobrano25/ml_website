@@ -130,5 +130,6 @@ t2-t1
 # Apr 27 2025 = 35 min (added shiny app and logo)
 # Apr 29 2025 = 20 min (somehow faster)
 # May 5  2025 = 10 min (somehow faster?)
+# Oct 21 2025 = 15 min (good)
 
 # Stamp

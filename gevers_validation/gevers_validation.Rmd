@@ -201,7 +201,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("ROC Curve with 95% CI", " (AUC: ", round(roc_curve_all$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 ```
 
 
@@ -287,7 +287,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("No log-transform\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 ```
 
 Clearly, and not surprisingly, log-transforming the data did not cause the performance to suffer.
@@ -377,10 +377,9 @@ gevers_model_loop = readRDS("../saved/gevers_model_loop.Rds")
 # plot performance
 ggplot(gevers_model_loop)+
   geom_boxplot(aes(x = model, y=AUC))+
-  geom_point(aes(x =  model, y=AUC), size=2.5, color="black")+
-  geom_point(aes(x =  model, y=AUC), size=1.5, color="white")+
-  geom_point(aes(x =  model, y=AUC, color= model), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none")+
+  geom_point(aes(x =  model, y=AUC, fill= model), shape=21, size=3, alpha=1)+
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Model", y="Internal AUC")
 # 
 ```

@@ -7,6 +7,11 @@ knitr::opts_chunk$set(echo = FALSE, cache=FALSE)
 library("dplyr")
 library("ggplot2")
 
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
 ```
 
 
@@ -97,7 +102,7 @@ sample(sinai_data, size=50, replace=F)%>% as.matrix() %>%
   reshape2::melt() %>%
   ggplot(aes(x=value, y = 1))+
   ggridges::geom_density_ridges(aes(group = Var2), color="black", fill="white", alpha=0.2)+
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Adjusted Count", y="Frequency")
 
 ```
@@ -119,7 +124,7 @@ sample(sinai_data_log, size=50, replace=F)%>% as.matrix() %>%
   reshape2::melt() %>%
   ggplot(aes(x=value, y = 1))+
   ggridges::geom_density_ridges(aes(group = Var2), color="black", fill="white", alpha=0.2)+
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Log-transformed Adjusted Count", y="Frequency")
 
 ```
@@ -203,7 +208,7 @@ ggplot(sinai_pca_df,
              aes(fill = as.factor("Inflamed"), shape = Status))+
     geom_point(data=subset(sinai_pca_df, Status == "NonI"), shape=23, color="black",
              aes(fill = as.factor("Non-inflamed"), shape = Status))+
-  theme_bw()+
+  theme_classic()+
   facet_wrap(~Location)+
   labs(x=paste("PC1: ", round(var_exp[1], digits=2), "%", sep=""), 
        y=paste("PC2: ", round(var_exp[2], digits=2), "%", sep=""),
@@ -299,7 +304,7 @@ ggplot(sinai_rectum_pca_df,
              aes(fill = as.factor(1), shape = Status))+
     geom_point(data=subset(sinai_rectum_pca_df, Status == "NonI"), shape=23, color="black",
              aes(fill = as.factor(2), shape = Status))+
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none")+
   labs(x=paste("PC1: ", round(var_exp_rectum[1], digits=2), "%", sep=""), 
        y=paste("PC2: ", round(var_exp_rectum[2], digits=2), "%", sep=""))+
   # add distributions along axes
@@ -307,14 +312,14 @@ ggplot(sinai_rectum_pca_df,
          aes(x=PC2, y=1))+
   geom_violin(aes(x=Status, y=PC2, fill=Status), color="black",
               draw_quantiles = 0.5)+
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Status", y="PC2")+  
   ggplot(sinai_rectum_pca_df, 
          aes(x=PC1, y=1))+
   coord_flip()+
   geom_violin(aes(x=Status, y=PC1, fill=Status), color="black",
               draw_quantiles = 0.5)+
-  theme_minimal()+theme(legend.position="none")+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Status", y="PC1")+ plot_spacer()+
   patchwork::plot_layout(widths=c(4,1), heights=c(3,1))
 
@@ -482,7 +487,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("ROC Curve with 95% CI", " (AUC: ", round(roc_curve_all$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 ```
 
 Even after aggressive feature selection and downsampling, elastic net can predict IBD from controls with an AUC of 0.906. Quite an impressive looking ROC, albeit for internal validation.
@@ -511,9 +516,10 @@ sinai_ibd_model_mean$Status_color = factor(sinai_ibd_model_mean$Status, levels=c
 ggplot(sinai_ibd_model_mean,
        aes(x=Disease, y=mean.prob))+
   geom_violin(draw_quantiles= 0.5) +
-  ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Status_color), color="black")+
+  ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+theme(legend.position="none")+
+    scale_fill_manual(values=c("white", gg_color_hue(4)[2], gg_color_hue(4)[4]))+
+  theme_classic()+theme(legend.position="none")+
   facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD")
 
@@ -680,7 +686,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("Rectum (Non-inflamed)\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all_r$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 
 ```
 ```{r, is_r_model_useful, echo=F, results=F, plot=T, warning=F, message=F}
@@ -701,12 +707,14 @@ sinai_r_model_mean$Status = factor(sinai_r_model_mean$Status, levels=c("NonI", "
 
 sinai_r_model_mean$Status = factor(ifelse(sinai_r_model_mean$Status == "NonI", "Non-inflamed", "Inflamed"), levels=c("Non-inflamed", "Inflamed"))
 
+
 ggplot(sinai_r_model_mean,
        aes(x=Disease, y=mean.prob))+
   geom_violin(draw_quantiles= 0.5) +
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+theme(legend.position="none")+
+  scale_fill_manual(values=c("white", gg_color_hue(4)[2], gg_color_hue(4)[4]))+
+  theme_classic()+theme(legend.position="none")+
   facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Rectum Model")
 
@@ -803,7 +811,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("Ileum (Non-inflamed)\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all_i$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 
 ```
 
@@ -831,7 +839,8 @@ ggplot(sinai_i_model_mean,
   geom_violin(draw_quantiles= 0.5) +
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+theme(legend.position="none")+
+    scale_fill_manual(values=c("white", gg_color_hue(4)[2], gg_color_hue(4)[4]))+
+  theme_classic()+theme(legend.position="none")+
   facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Ileum Model")
 
@@ -901,7 +910,7 @@ ggplot() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("Ensemble (Non-inflamed)\nROC Curve with 95% CI", " (AUC: ", round(roc_curve_all_ensemble$auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity") +
-  theme_bw()
+  theme_classic()
 
 ```
 
@@ -930,7 +939,8 @@ ggplot(sinai_ensemble_model_mean,
   geom_violin(draw_quantiles= 0.5) +
   ggbeeswarm::geom_beeswarm(shape=21, aes(fill = Disease), color="black")+
   geom_hline(yintercept=0.5, linetype=2, alpha=0.5)+
-  theme_minimal()+theme(legend.position="none")+
+    scale_fill_manual(values=c("white", gg_color_hue(4)[2], gg_color_hue(4)[4]))+
+  theme_classic()+theme(legend.position="none")+
   facet_wrap(~Status, scales="free_x")+
   labs(x="Disease", y="Mean Probability of IBD", title="Non-Inflamed Ensemble Model")
 

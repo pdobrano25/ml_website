@@ -10,6 +10,11 @@ library("ggplot2")
 
 cache = T
 
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
 ```
 
 
@@ -86,7 +91,7 @@ aml_meta$subjectID %>% table() %>% data.frame() %>%
   ggplot()+
   ggridges::geom_density_ridges(aes(x=Freq, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(title = "Sample Replicates",
        x = "Number of Samples per Subject",
        y="Frequency")
@@ -177,7 +182,7 @@ if(cache == F){
 aml_taxa_dist_plot = ggplot(reshape2::melt(as.matrix(aml_taxa)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Count", y="Frequency")
 saveRDS(aml_taxa_dist_plot, "../saved/aml_taxa_dist_plot.Rds")
 }
@@ -209,7 +214,7 @@ if(cache == F){
 aml_taxa_dist_plot_2 <- ggplot(reshape2::melt(as.matrix(aml_taxa)))+
   ggridges::geom_density_ridges(aes(x=value, group=Var2, y=1),
                                   color="black", fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(x="Log2 Relative Abundance", y="Frequency")
   
 saveRDS(aml_taxa_dist_plot_2, "../saved/aml_taxa_dist_plot_2.Rds")
@@ -383,7 +388,9 @@ ggplot()+
   geom_point(data=subset(aml_model_loop_median, datatype=="real"), 
              aes(x =  model, y=med.val, fill= model), shape=21, size=1.5)+
   geom_text(data=aml_model_ttest, aes(x=model, Inf, label=sig), vjust=1.2)+
-  theme_bw()+theme(legend.position="none",
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+    scale_color_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none",
                            axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   facet_grid(variable ~ data, switch="y")+
   labs(x="Model", y="")
@@ -489,12 +496,13 @@ aml_multi_rf_conf_df = aml_multi_rf_conf %>%
 aml_multi_rf_conf_plot = ggplot(aml_multi_rf_conf_df,
        aes(x=Reference, y = Prediction))+
   geom_tile(color="white", aes(fill = mean.perc*100))+
-  geom_text(aes(label = paste0(round(mean.val, digits=0), "\n(",round(mean.perc*100, digits=0),"%)", sep="")),
-            color = "white")+
-  scale_fill_gradient2(low = scales::muted("blue"),
+  geom_text(aes(label = paste0(round(mean.val, digits=0), "\n(",round(mean.perc*100, digits=0),"%)", sep=""), color=ifelse(mean.perc > .4 & mean.perc < 0.6, "black", "white")))+
+  scale_color_manual(values=c("white", "black"))+
+  scale_fill_gradient2(low = ("blue"),
                        mid = "white", midpoint = 50,
-                       high = scales::muted("red"))+
-  theme_minimal()+
+                       high = ("red"))+
+  theme_classic()+
+    guides(color = "none")+
   labs(x="True", y="Predicted", fill="Mean\nPercentage\nPrediction")
 
 aml_multi_rf_conf_plot
@@ -565,15 +573,18 @@ aml_multi_rf_auc_loop_summary <- aml_multi_rf_auc_loop %>%
 # compute mean AUC
 mean_auc = mean(aml_multi_rf_auc_loop$auc)
 
+
 # plot Using ggplot2
 aml_multi_rf_auc_plot = ggplot() +  
   # mean ROC Curve
-  geom_line(data = aml_multi_rf_auc_loop_summary, aes(x = Mean_Sensitivity, y = TPR, color=Class), size = 1) +
+  geom_line(data = aml_multi_rf_auc_loop_summary %>%
+              mutate(Class = factor(Class, levels=c("none", "cancer", "cirrhosis", "IBD", "obesity", "t2d"))), aes(x = Mean_Sensitivity, y = TPR, color=Class), size = 1) +
+  scale_color_manual(values=c("black", gg_color_hue(5)[1:5]))+
   # Add diagonal reference line (random classifier)
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("Multiclass AUC", " (", round(mean_auc, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity", color="Disease") +
-  theme_minimal()
+  theme_classic()
 aml_multi_rf_auc_plot
 
 saveRDS(aml_multi_rf_auc_plot, "../saved/aml_multi_rf_auc_plot.Rds")
@@ -682,12 +693,13 @@ aml_multi_rf_conf_sample_df = aml_multi_rf_conf_sample %>%
 aml_multi_rf_conf_sample_plot = ggplot(aml_multi_rf_conf_sample_df,
        aes(x=Reference, y = Prediction))+
   geom_tile(color="white", aes(fill = mean.perc*100))+
-  geom_text(aes(label = paste0(round(mean.val, digits=0), "\n(",round(mean.perc*100, digits=0),"%)", sep="")),
-            color = "white")+
-  scale_fill_gradient2(low = scales::muted("blue"),
+  geom_text(aes(label = paste0(round(mean.val, digits=0), "\n(",round(mean.perc*100, digits=0),"%)", sep=""), color=ifelse(mean.perc > .4 & mean.perc < 0.6, "black", "white")))+
+  scale_color_manual(values=c("black", "white"))+
+  scale_fill_gradient2(low = ("blue"),
                        mid = "white", midpoint = 50,
-                       high = scales::muted("red"))+
-  theme_minimal()+
+                       high = ("red"))+
+  guides(color = "none")+
+  theme_classic()+
   labs(x="True", y="Predicted", fill="Mean\nPercentage\nPrediction")
 
 aml_multi_rf_conf_sample_plot
@@ -784,12 +796,14 @@ mean_auc_sample = mean(aml_multi_rf_auc_sample$auc)
 # plot 
 aml_multi_rf_auc_sample_plot = ggplot() +  
   # mean ROC Curve
-  geom_line(data = aml_multi_rf_auc_loop_summary_sample, aes(x = Mean_Sensitivity, y = TPR, color=Class), size = 1) +
+  geom_line(data = aml_multi_rf_auc_loop_summary_sample %>%
+              mutate(Class = factor(Class, levels=c("none", "cancer", "cirrhosis", "IBD", "obesity", "t2d"))), aes(x = Mean_Sensitivity, y = TPR, color=Class), size = 1) +
+    scale_color_manual(values=c("black", gg_color_hue(5)[1:5]))+
   # Add diagonal reference line (random classifier)
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
   # Labels and theme
   labs(title = paste("Downsampled Multiclass AUC", " (", round(mean_auc_sample, digits=3), ")", sep=""), x = "1 - Specificity", y = "Sensitivity", color="Disease") +
-  theme_minimal()
+  theme_classic()
 aml_multi_rf_auc_sample_plot
 
 saveRDS(aml_multi_rf_auc_sample_plot, "../saved/aml_multi_rf_auc_sample_plot.Rds")

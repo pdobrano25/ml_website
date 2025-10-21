@@ -57,7 +57,7 @@ Here is the distribution of *Faecalibacterium prausnitzii*, a highly abundant an
 data.frame(faecali = nishijima.training[,1]) %>%
   ggplot()+
   ggridges::geom_density_ridges(aes(x=faecali, y=1), fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(title = colnames(nishijima.training)[1],
        x = paste(colnames(nishijima.training)[1], "Log Abundance", sep=" "),
        y="Frequency")
@@ -75,7 +75,7 @@ Here is a distribution of the minimum values of all taxa:
 data.frame(pseudo = apply(nishijima.training, 1, min) ) %>%
   ggplot()+
   ggridges::geom_density_ridges(aes(x=pseudo, y=1), fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(title = "Pseudocount distribution",
        x = "Minimum value",
        y="Frequency")
@@ -157,7 +157,7 @@ Nishijima uses Pearson correlation coefficients to evaluate the predictive perfo
 data.frame(obs = nishijima.model.predictions$obs) %>%
   ggplot()+
   ggridges::geom_density_ridges(aes(x=obs, y=1), fill="white", alpha=0.2)+
-  theme_minimal()+
+  theme_classic()+
   labs(title = "Microbial Load Distrubtion",
        x = "Measured Microbial Load",
        y="Frequency")
@@ -171,14 +171,13 @@ Let's see what the Pearson correlation coefficient is between the true (measured
 
 # Here's a scatter plot with embedded correlation
 
-ggpubr::ggscatter(nishijima.model.predictions, 
-          x = "obs", y = "ave.pred",
-          add = "reg.line", 
-          conf.int = TRUE, 
-          add.params = list(color = "blue",
-                            fill = "lightgray"))+
+ggplot(nishijima.model.predictions, 
+          aes(x = obs, y = ave.pred))+
+  geom_point(shape=21, fill="white", size=2.5)+
+  geom_smooth(method="lm", color="black")+
   ggpubr::stat_cor(method = "pearson")+
-  ggplot2::labs(x="Measured Microbial Load (log10)",
+  theme_classic()+
+  labs(x="Measured Microbial Load (log10)",
        y="Predicted Microbial Load (log10)",
        title="Internal Validation\nOriginal Model")
 
@@ -242,16 +241,17 @@ testing.predictions = data.frame(pred = testing.predictions,
 ```
 ```{r, external_validation_2}
 # Lastly, check Pearson correlation
-ggpubr::ggscatter(testing.predictions, 
-          x = "obs", y = "pred",
-          add = "reg.line", 
-          conf.int = TRUE, 
-          add.params = list(color = "blue",
-                            fill = "lightgray"))+
+ggplot(testing.predictions, 
+          aes(x = obs, y = pred))+
+  geom_point(shape=21, fill="white", size=2.5)+
+  geom_smooth(method="lm", color="black")+
   ggpubr::stat_cor(method = "pearson")+
-  ggplot2::labs(x="Measured Microbial Load (log10)",
+    theme_classic()+
+  labs(x="Measured Microbial Load (log10)",
        y="Predicted Microbial Load (log10)",
        title="External Validation\nOriginal Model")
+
+
 ```
 
 In Nishijima's publication, the external validation correlation was 0.60.
@@ -363,13 +363,12 @@ nishijima.model.rebuilt.predictions = nishijima.model.rebuilt$pred %>%
 ```{r, retrain_model_2}
 
 # Here's a scatter plot with embedded correlation
-ggpubr::ggscatter(nishijima.model.rebuilt.predictions, 
-          x = "obs", y = "ave.pred",
-          add = "reg.line", 
-          conf.int = TRUE, 
-          add.params = list(color = "blue",
-                            fill = "lightgray"))+
+ggplot(nishijima.model.rebuilt.predictions, 
+          aes(x = obs, y = ave.pred))+
+  geom_point(shape=21, fill="white", size=2.5)+
+  geom_smooth(method="lm", color="black")+
   ggpubr::stat_cor(method = "pearson")+
+    theme_classic()+
   ggplot2::labs(x="Measured Microbial Load (log10)",
        y="Predicted Microbial Load (log10)",
        title="Internal Validation\nRebuilt Model")
@@ -404,13 +403,12 @@ testing.predictions.rebuilt = data.frame(pred = testing.predictions.rebuilt,
 
 ```{r, retrain_model_4}
 # Lastly, check Pearson correlation
-ggpubr::ggscatter(testing.predictions.rebuilt, 
-          x = "obs", y = "pred",
-          add = "reg.line", 
-          conf.int = TRUE, 
-          add.params = list(color = "blue",
-                            fill = "lightgray"))+
+ggplot(testing.predictions.rebuilt, 
+          aes(x = obs, y = pred))+
+  geom_point(shape=21, fill="white", size=2.5)+
+  geom_smooth(method="lm", color="black")+
   ggpubr::stat_cor(method = "pearson")+
+    theme_classic()+
   ggplot2::labs(x="Measured Microbial Load (log10)",
        y="Predicted Microbial Load (log10)",
        title="External Validation\nOriginal Model")
@@ -535,10 +533,9 @@ model.loop.pearson = do.call(rbind, lapply(1:15, function(seed) {
 # check how long each model takes to build
 ggplot(model.loop[,c("iter", "model", "time")] %>% distinct())+
   geom_boxplot(aes(x = model, y=time))+
-  geom_point(aes(x =  model, y=time), size=2.5, color="black")+
-  geom_point(aes(x =  model, y=time), size=1.5, color="white")+
-  geom_point(aes(x =  model, y=time, color= model), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none")+
+  geom_point(aes(x =  model, y=time, fill= model), shape=21, size=3, alpha=1)+
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Model", y="Time elapsed (sec)")
 # RandomForest is fast
 ```
@@ -550,10 +547,9 @@ Next, lets check the internal validation *RMSE*, the loss function caret uses to
 ```{r, plot_loop_models_rmse , echo=FALSE, results=FALSE, plot=T, warning=FALSE, message=FALSE}
 ggplot(model.loop[,c("iter", "model", "internal.rmse")] %>% distinct())+
   geom_boxplot(aes(x = model, y=internal.rmse))+
-  geom_point(aes(x =  model, y=internal.rmse), size=2.5, color="black")+
-  geom_point(aes(x =  model, y=internal.rmse), size=1.5, color="white")+
-  geom_point(aes(x =  model, y=internal.rmse, color= model), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none")+
+  geom_point(aes(x =  model, y=internal.rmse, fill= model), shape=21, size=3, alpha=1)+
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none")+
   labs(x="Model", y="Internal Validation\nRMSE")
 ```
 
@@ -565,11 +561,10 @@ Now we will evaluate the performance by calculating the Pearson correlation coef
 # plot pearson values
 model.loop.pearson.plot = ggplot(model.loop.pearson)+
   geom_boxplot(aes(x = model, y=pearson))+
-  geom_point(aes(x = model, y=pearson), size=2.5, color="black")+
-  geom_point(aes(x = model, y=pearson), size=1.5, color="white")+
-  geom_point(aes(x = model, y=pearson, color=model), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none")+
-  geom_hline(yintercept = 0, linetype=2)+
+  geom_point(aes(x = model, y=pearson, fill= model), shape=21, size=3, alpha=1)+
+    scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none")+
+  geom_hline(yintercept = 0, linetype=2, linewidth = 0.2, alpha=0.5)+
   labs(x="Model", y="Pearson Correlation")
 
 model.loop.pearson.plot

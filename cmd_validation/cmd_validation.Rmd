@@ -182,7 +182,7 @@ cmd_model_train <- caret::train(
 predictions <- predict(cmd_model_train, cmd_data[grepl(heldout, rownames(cmd_data)),], type="prob")
 # calculate AUC
 auc_test <- pROC::roc(cmd_data[grepl(heldout, rownames(cmd_data)),]$study_condition,
-                     predictions$IBD)
+                     predictions$IBD, levels=c("control", "IBD"))
 if(plot == FALSE){
   
   # extract sensitivities and specificities
@@ -192,8 +192,8 @@ if(plot == FALSE){
   
 output = data.frame(
            auc = auc_test$auc,
-           sens = caret::sensitivity(binary_preds$pred, binary_preds$obs),
-           spec = caret::specificity(binary_preds$pred, binary_preds$obs),
+           sens = caret::sensitivity(binary_preds$pred, binary_preds$obs, levels=c("control", "IBD")),
+           spec = caret::specificity(binary_preds$pred, binary_preds$obs, levels=c("control", "IBD")),
            dataset = heldout,
            algorithm = model)
 return(output)
@@ -206,7 +206,7 @@ auc_test_df <- data.frame(
 ) %>% arrange((sensitivity))
 
 # calculate 95% confidence interval
-auc_ci_test <- pROC::ci.se(auc_test, specificities = seq(0, 1, l = 100), boot.n = 2000)
+auc_ci_test <- pROC::ci.se(auc_test, specificities = seq(0, 1, l = 100), boot.n = 2000, levels=c("control", "IBD"))
 auc_ci_test = data.frame(auc_ci_test)
 colnames(auc_ci_test) = c("lower", "mean", "upper")
 auc_ci_test$spec = seq(0, 1, l = 100)
@@ -381,7 +381,7 @@ cmd_model_loop <- do.call(rbind, lapply(1:15, function(iter){
     
     }))}))}))
 t2 <- Sys.time()
-t2 - t1 # 11.3 hours
+t2 - t1 # 1-11 hours
       
 saveRDS(cmd_model_loop, "../saved/cmd_model_loop.Rds")
 
@@ -398,10 +398,10 @@ cmd_model_loop
 # plot performance
 ggplot(cmd_model_loop)+
   geom_boxplot(aes(x = algorithm, y=auc))+
-  geom_point(aes(x =  algorithm, y=auc), size=2.5, color="black")+
-  geom_point(aes(x =  algorithm, y=auc), size=1.5, color="white")+
-  geom_point(aes(x =  algorithm, y=auc, color= algorithm), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none",
+  geom_point(aes(x =  algorithm, y=auc, fill= algorithm), color="black", shape=21,size=2, alpha=1)+
+  theme_classic()+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme(legend.position="none",
                            axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="Model", y="LOCO AUC")+
   facet_wrap(~dataset)
@@ -423,10 +423,9 @@ Let's examine this suspicion by plotting the sensitivities and specificities:
 # plot performance
 ggplot(cmd_model_loop)+
   geom_boxplot(aes(x = algorithm, y=sens))+
-  geom_point(aes(x =  algorithm, y=sens), size=2.5, color="black")+
-  geom_point(aes(x =  algorithm, y=sens), size=1.5, color="white")+
-  geom_point(aes(x =  algorithm, y=sens, color= algorithm), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none",
+  geom_point(aes(x =  algorithm, y=sens, fill= algorithm), shape=21, size=2, alpha=1)+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+theme(legend.position="none",
                            axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="Model", y="LOCO Sensitivity")+
   facet_wrap(~dataset)
@@ -437,10 +436,10 @@ ggplot(cmd_model_loop)+
 # plot performance
 ggplot(cmd_model_loop)+
   geom_boxplot(aes(x = algorithm, y=spec))+
-  geom_point(aes(x =  algorithm, y=spec), size=2.5, color="black")+
-  geom_point(aes(x =  algorithm, y=spec), size=1.5, color="white")+
-  geom_point(aes(x =  algorithm, y=spec, color= algorithm), size=1.5, alpha=0.6)+
-  theme_bw()+theme(legend.position="none",
+  geom_point(aes(x =  algorithm, y=spec, fill= algorithm), shape=21, size=2, alpha=1)+
+  scale_fill_manual(values=RColorBrewer::brewer.pal(name="Set3", n = length(ml.models)))+
+  theme_classic()+
+theme(legend.position="none",
                            axis.text.x=element_text(angle=45,vjust=1, hjust=1))+
   labs(x="Model", y="LOCO Specificity")+
   facet_wrap(~dataset)
