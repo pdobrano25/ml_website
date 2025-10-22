@@ -469,7 +469,7 @@ aml_multi_rf_conf = do.call(rbind, lapply(1:15, function(seed){
   oob_class <- factor(oob_class, levels = levels(data.subset$disease))
 
   # Compute confusion matrix based on OOB predictions
-  conf_matrix <- confusionMatrix(oob_class, data.subset$disease)
+  conf_matrix <- caret::confusionMatrix(oob_class, data.subset$disease)
   conf_matrix_df = conf_matrix$table %>% reshape2::melt()
 
   conf_matrix_df$iter = seed
